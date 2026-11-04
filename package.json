@@ -1,0 +1,10 @@
+{
+  "name": "vaultix",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "scripts": {
+    "web:dev": "pnpm --filter web dev",
+    "web:check": "pnpm --filter web lint && pnpm --filter web typecheck"
+  }
+}

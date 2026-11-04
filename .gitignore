@@ -1,0 +1,36 @@
+# Secrets: never commit keypairs, mnemonics or env files
+.env
+.env.*
+!.env.example
+**/*-keypair.json
+id.json
+*.mnemonic
+
+# Anchor / Rust
+target/
+.anchor/
+test-ledger/
+
+# Node
+node_modules/
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+
+# Next.js / Vercel
+.next/
+out/
+.vercel/
+next-env.d.ts
+*.tsbuildinfo
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
