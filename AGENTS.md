@@ -6,18 +6,32 @@ Instrucciones para agentes de código que trabajan en Vaultix. El **qué** y el 
 
 1. **Los fondos van a ser reales.** Cualquier cambio en `programs/` requiere tests que cubran el camino feliz, los plazos vencidos y los accesos no autorizados. Sin tests en verde, no se mergea.
 2. **El MVP es chico a propósito.** No agregues features, dependencias ni abstracciones que no pida la tarea. Si algo falta, anotalo en "Preguntas abiertas" del README en lugar de inventarlo.
-3. **No decidas lo que está abierto.** Wallet embebida, RPC, plazos, porcentajes y topes están _a definir_. Usá constantes o variables de entorno con un valor por defecto razonable, y avisá qué elegiste.
+3. **No decidas lo que está abierto.** Proveedor de cuenta, RPC, plazos, porcentajes y topes ya están definidos en `specs/01-arquitectura.md`. Lo que siga _a definir_ va en constantes o variables de entorno con un valor por defecto razonable, y avisá qué elegiste.
 4. **On-chain solo lo que mueve o bloquea plata.** Fotos, descripciones y evidencia van off-chain; on-chain, a lo sumo, su hash.
 5. **Devnet por defecto.** Todo deploy, script y test apunta a Solana devnet o a un validador local. **Nunca** hagas un deploy a mainnet-beta sin pedido explícito.
 6. **Nunca** commitees keypairs (`~/.config/solana/*.json`, `target/deploy/*-keypair.json`), mnemonics, `.env` ni API keys. Agregalos al `.gitignore` desde el primer commit.
 
-## Estructura del repo (propuesta)
+## Specs
+
+Antes de tomar una tarea, leé el kit de `specs/`:
+
+- `01-arquitectura.md`: stack, flujos entre capas, fee payer, variables de entorno y defaults del protocolo.
+- `02-backend.md`: contrato del programa (cuentas, instrucciones, eventos, errores, tests) y Supabase (tablas, RLS, API routes).
+- `03-frontend.md`: pantallas, estados de UI y ciclo de transacción.
+- `04-tareas.md`: DAG de tareas atómicas (una tarea = un PR). Tomá solo tareas con las dependencias mergeadas.
+- `05-design.md`: sistema visual y de voz (sale del manual de marca).
+
+Si una tarea contradice un spec, el spec manda. Si el spec está mal, corregilo en el mismo PR y avisá.
+
+## Estructura del repo
 
 ```
 /
 ├── README.md               # Producto, arquitectura y reglas de negocio
 ├── AGENTS.md               # Este archivo
+├── specs/                  # Kit de orquestación (ver arriba)
 ├── Vaultix_Manual_de_Marca.pdf
+├── pnpm-workspace.yaml     # "." (tests/scripts) + "web"
 ├── Anchor.toml             # cluster = devnet por defecto
 ├── programs/
 │   └── vaultix_escrow/     # Programa Anchor (Rust)
@@ -27,7 +41,7 @@ Instrucciones para agentes de código que trabajan en Vaultix. El **qué** y el 
 │           ├── errors.rs
 │           ├── events.rs
 │           └── instructions/   # una instrucción por archivo
-├── tests/                  # Tests de integración (TypeScript, anchor test)
+├── tests/                  # Tests de integración (TypeScript + LiteSVM, con control del reloj)
 ├── scripts/                # Seed de devnet: config, mint de prueba, órdenes demo
 ├── web/                    # Next.js (App Router) + @solana/web3.js
 │   ├── app/
@@ -53,12 +67,14 @@ solana airdrop 2                 # SOL de prueba para fees y deploy
 
 # Programa
 anchor build
-anchor test                      # levanta un validador local y corre tests/
+pnpm test:program                # tests/ con LiteSVM (necesita anchor build antes)
 cargo clippy --all-targets -- -D warnings
 cargo fmt
 
 # Deploy a devnet (solo devnet)
 anchor deploy --provider.cluster devnet
+pnpm seed:devnet                 # Config + tesorería (idempotente)
+pnpm sync-idl                    # copia IDL y tipos a web/lib/vaultix/
 
 # Web
 cd web
@@ -66,10 +82,11 @@ pnpm install
 pnpm dev
 pnpm lint
 pnpm typecheck
+pnpm test                        # Vitest en lib/
 pnpm build
 ```
 
-Antes de dar una tarea por terminada, corré `anchor test` y/o `pnpm lint && pnpm typecheck` según lo que hayas tocado. Si cambiaste el programa, regenerá el IDL y los tipos que usa `web/`.
+Antes de dar una tarea por terminada, corré `anchor build && pnpm test:program` y/o `pnpm lint && pnpm typecheck && pnpm test` según lo que hayas tocado. Si cambiaste el programa, corré `pnpm sync-idl` para regenerar el IDL y los tipos que usa `web/`.
 
 ## Programa (Rust + Anchor)
 

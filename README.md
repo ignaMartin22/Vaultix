@@ -10,10 +10,10 @@ Este README da contexto al agente antes de empezar a desarrollar. Define el prod
 
 ## Contexto para el agente
 
-- **Red:** se desarrolla y prueba en **Solana devnet**. Mainnet-beta solo con pedido explícito.
+- **Red:** se desarrolla y prueba en **Solana devnet**. Mainnet-beta **no está contemplado para la demo**.
 - **Objetivo:** un MVP funcional en **7 días**, con usuarios reales y tracción verificable on-chain.
 - **Prioridad:** la simpleza le gana a la completitud. Ante una duda de alcance, elegí la opción más chica que funcione y dejala anotada en [Preguntas abiertas](#preguntas-abiertas).
-- **Las decisiones marcadas como _propuesta_ no están cerradas.** No las trates como definitivas sin confirmar.
+- **Specs:** las decisiones de diseño cerradas y el desglose de tareas están en [`specs/`](specs/). Ante una diferencia con este README, mandan los specs.
 - **Idioma:** el código, los commits y los comentarios van en inglés. La UI va en **español rioplatense con voseo** ("pagá", "confirmá").
 - **Mobile-first:** casi todo el tráfico llega desde el link compartido en WhatsApp o Instagram.
 - **Sin jerga cripto en la UI:** nada de "wallet", "gas", "smart contract" ni "seed phrase" frente al usuario.
@@ -43,14 +43,15 @@ En la compraventa entre particulares nadie confía en nadie:
 
 ## Decisiones clave
 
-| Decisión | Propuesta | Alternativas | Motivo |
+| Tema | Decisión (MVP) | Alternativas | Motivo |
 | --- | --- | --- | --- |
-| Moneda | USDC (SPL), con precios mostrados en pesos | USDT (SPL) | Mucha gente ya tiene USDC/USDT en Lemon o Ripio. En devnet se usa el USDC de prueba de Circle |
-| Red | **Solana**: primero **devnet**, mainnet-beta recién después de validar | — | Fees de fracciones de centavo, confirmación en segundos y USDC nativo (SPL) |
-| Onboarding | Login con email o Google con wallet embebida para Solana | Privy, Dynamic, Phantom/Solflare para quien ya tenga wallet | El usuario nunca ve una seed phrase |
+| Moneda | USDC (SPL), con precios de referencia en pesos (CriptoYa) | USDT (SPL) | Mucha gente ya tiene USDC/USDT en Lemon o Ripio. En devnet se usa el USDC de prueba de Circle |
+| Red | **Solana devnet** (mainnet-beta fuera de la demo) | — | Fees de fracciones de centavo, confirmación en segundos y USDC nativo (SPL) |
+| Onboarding | **Privy**: email o Google con cuenta Solana embebida; Phantom/Solflare con el mismo SDK | Dynamic | El usuario nunca ve una seed phrase |
+| Comisiones de red | Las paga un **fee payer del backend** (transacciones patrocinadas) | Que el usuario tenga SOL | El usuario nunca necesita SOL |
 | Custodia | Ninguna: los fondos viven en la vault de cada orden (PDA) | Custodia en pesos vía PSP | Menos riesgo regulatorio |
-| Modelo de negocio | Comisión del **1–2%** por operación cerrada | Suscripción para vendedores frecuentes | Muy por debajo de Mercado Libre |
-| Árbitro de disputas | El equipo (dirección admin) en el MVP | Árbitros externos o reputación | Simple para la primera semana |
+| Modelo de negocio | Comisión del **1,5%** por operación cerrada, a cargo del vendedor | Suscripción para vendedores frecuentes | Muy por debajo de Mercado Libre |
+| Árbitro de disputas | El equipo, con una cuenta Phantom (`config.arbiter`) | Árbitros externos o reputación | Simple para la primera semana |
 
 **Nicho inicial:** productos de valor medio-alto entre gente que ya usa cripto, como zapatillas, celulares, consolas y ropa de marca. Primeros vendedores: una marca de ropa propia y la comunidad tech local.
 
@@ -79,10 +80,10 @@ En la compraventa entre particulares nadie confía en nadie:
 | Capa | Tecnología | Responsabilidad |
 | --- | --- | --- |
 | Programa | Rust + Anchor | Un programa único; cada venta es una cuenta `Order` (PDA) con su vault de tokens |
-| Red | Solana devnet → mainnet-beta | RPC configurable por variable de entorno |
-| Frontend | Next.js + `@solana/web3.js` + cliente generado del IDL de Anchor | Crear link, pagar, confirmar, disputar |
-| Wallet | Privy o Dynamic con wallets embebidas de Solana (_a definir_); Solana Wallet Adapter para Phantom/Solflare | Login con email o Google |
-| Backend | Supabase | Datos off-chain, consulta de tracking, notificaciones, panel admin |
+| Red | Solana devnet, RPC de Helius | RPC configurable por variable de entorno |
+| Frontend | Next.js en Vercel + `@solana/web3.js` + cliente generado del IDL de Anchor | Crear link, pagar, confirmar, disputar |
+| Cuentas | Privy (cuentas embebidas de Solana + Phantom/Solflare) | Login con email o Google |
+| Backend | Supabase + API routes de Next.js + webhook de Helius + Resend | Datos off-chain, indexado de eventos, fee payer, notificaciones, panel admin |
 | Link | Open Graph dinámico | Preview en WhatsApp con foto, precio y sello |
 
 ### Modelo de cuentas en Solana
@@ -110,28 +111,28 @@ Created ──(comprador paga)──► Paid ──(vendedor carga tracking)─�
 
 | Estado | Entra cuando | Sale hacia |
 | --- | --- | --- |
-| `Created` | El vendedor crea la orden (link) | `Paid` |
-| `Paid` | El comprador deposita el monto | `Shipped`, o `Refunded` si vence el plazo de envío |
-| `Shipped` | El vendedor carga el tracking | `Released` (confirmación o plazo vencido) o `Disputed` |
+| `Created` | El vendedor crea la orden (link) | `Paid`, o se cierra con `close_order` si el vendedor cancela un link sin pagar |
+| `Paid` | El comprador deposita el monto (el primero que paga queda como comprador) | `Shipped`, o `Refunded` si vence el plazo de envío |
+| `Shipped` | El vendedor marca el envío (tracking opcional en el MVP) | `Released` (confirmación o plazo vencido) o `Disputed` |
 | `Disputed` | El comprador reclama dentro del plazo y paga el depósito | `Resolved` |
 | `Released` | Se paga al vendedor, menos la comisión | Final |
 | `Refunded` | Se devuelve al comprador | Final |
 | `Resolved` | El árbitro decide reembolso, liberación o división | Final |
 
-### Instrucciones del programa (borrador)
+### Instrucciones del programa
 
-Son orientativas, para que el agente arranque: nombres y argumentos a validar.
+Resumen. El contrato completo (cuentas, validaciones, aritmética, eventos y errores) está en [`specs/02-backend.md`](specs/02-backend.md).
 
-- `initialize_config(fee_bps, arbiter, treasury, allowed_mint, max_order_amount)` — solo el admin, una vez.
-- `create_order(order_id, amount, ship_deadline_secs, claim_window_secs)` — el vendedor; crea la cuenta `Order`.
-- `pay(order_id)` — el comprador; transfiere `amount` a la vault de la orden → `Paid`.
-- `mark_shipped(tracking_hash)` — solo el vendedor → `Shipped`.
-- `confirm_receipt()` — solo el comprador → `Released`.
-- `release()` — cualquiera (crank), si venció `claim_window` sin disputa → `Released`.
-- `refund_unshipped()` — el comprador, si venció `ship_deadline` sin envío → `Refunded`.
-- `open_dispute()` — el comprador, dentro de `claim_window`, depositando la garantía → `Disputed`.
-- `resolve_dispute(buyer_share_bps)` — solo el árbitro → `Resolved`.
-- `close_order()` — cierra la vault y la cuenta en estados finales y devuelve la renta.
+- `initialize_config(...)` / `update_config(...)`: solo el admin. Comisión, depósito, plazos, tope, árbitro, tesorería y mint permitido.
+- `create_order(order_id, amount, listing_hash)`: el vendedor; crea la cuenta `Order` y copia comisión y plazos de `Config`.
+- `pay()`: el primero que paga queda como comprador; transfiere `amount` a la vault → `Paid`.
+- `mark_shipped(tracking_hash: Option)`: solo el vendedor → `Shipped`. El hash es opcional en el MVP y será obligatorio en el producto final.
+- `confirm_receipt()`: solo el comprador → `Released`.
+- `release()`: cualquiera (crank), si venció `claim_window` sin disputa → `Released`.
+- `refund_unshipped()`: cualquiera (crank), si venció `ship_deadline` sin envío → `Refunded`.
+- `open_dispute()`: el comprador, dentro de `claim_window`, depositando la garantía → `Disputed`.
+- `resolve_dispute(buyer_share_bps)`: solo el árbitro → `Resolved`.
+- `close_order()`: cierra la vault y la cuenta en estados finales (cualquiera) o en `Created` (solo el vendedor) y devuelve la renta.
 - Un evento Anchor (`emit!`) por transición, que el backend indexa.
 
 **Requisitos:** validar cada cuenta con las constraints de Anchor (`has_one`, `seeds`, `bump`, `token::mint`, `token::authority`), aritmética con `checked_*`, plazos con `Clock::get()?.unix_timestamp`, comisión en basis points con tope, y tests para cada transición y cada plazo vencido.
@@ -144,9 +145,11 @@ El fraude del comprador no se elimina, pero se vuelve caro y poco rentable. Se c
 
 ### 1. Evidencia del correo
 
-- El vendedor solo puede marcar "enviado" cargando un número de seguimiento real (Andreani, OCA, Correo Argentino). El backend consulta su estado.
+- **MVP:** el número de seguimiento (Andreani, OCA, Correo Argentino u otro) es **opcional**. Si se carga, su hash va on-chain y la UI linkea al sitio del correo. El árbitro verifica el estado a mano; no hay integración con APIs de correos.
+- **Producto final:** el tracking será obligatorio para marcar "enviado" y el backend consultará su estado.
 - Si el correo indica **"entregado"**, idealmente con firma o DNI, por defecto gana el vendedor.
-- Desde la entrega, el comprador tiene **48–72 hs** (_a definir_) para reclamar. Si no lo hace, el pago se libera solo.
+- El vendedor tiene **5 días desde el pago** para despachar. Si no lo hace, el comprador recupera el 100%.
+- El comprador tiene **10 días desde que se marca el envío** para confirmar o reclamar (cubre el viaje + 48–72 hs). El programa no sabe cuándo se entregó, así que el plazo corre desde el despacho. Si nadie reclama, el pago se libera solo.
 - Para ventas de valor alto: retiro en sucursal con DNI o envío con seguro.
 
 ### 2. Reglas por tipo de reclamo
@@ -161,9 +164,9 @@ Se muestran en el link **antes** de pagar.
 
 ### 3. Incentivos
 
-- **Depósito para disputar:** abrir un reclamo cuesta, por ejemplo, un **5%** del valor (_a definir_). Si el comprador gana, se le devuelve. Si pierde, va al vendedor.
-- **Reputación:** cada disputa perdida queda asociada a la cuenta. Los vendedores pueden rechazar compradores con mal historial.
-- **Verificación de identidad** (mail, teléfono o DNI), para que crear cuentas nuevas no sea gratis.
+- **Depósito para disputar:** abrir un reclamo cuesta un **5%** del valor. Si el árbitro le da al comprador el 50% o más, se le devuelve; si no, va al vendedor. En una división, la comisión se cobra solo sobre la parte del vendedor.
+- **Reputación:** cada disputa perdida queda asociada a la cuenta. En el MVP se muestran contadores (ventas cerradas, disputas perdidas); el bloqueo de compradores queda para después.
+- **Verificación de identidad:** en el MVP, solo el email del login. Teléfono y DNI quedan para después.
 
 ### Flujo de una disputa
 
@@ -209,13 +212,15 @@ El manual completo está en `Vaultix_Manual_de_Marca.pdf`. Lo esencial para la U
 
 ## Plan de 7 días
 
-- [ ] **Día 1:** definir plazos y reglas de disputa. Escribir el programa Anchor y sus tests.
-- [ ] **Día 2:** deploy en **devnet**. Login con wallet embebida y flujo de pago con USDC de devnet funcionando.
-- [ ] **Día 3:** pantallas del vendedor (crear link) y del comprador (pagar y confirmar), con preview para WhatsApp.
-- [ ] **Día 4:** tracking, liberación automática, panel de disputas y notificaciones por mail.
-- [ ] **Día 5:** pruebas end-to-end en devnet con 3 o 4 conocidos. Revisión del programa y checklist de mainnet.
-- [ ] **Día 6:** deploy en **mainnet-beta** con tope bajo por operación, **solo si devnet quedó estable**. Lanzamiento con vendedores reales (si no, se lanza la demo en devnet).
-- [ ] **Día 7:** métricas, video demo y pitch.
+El desglose en tareas atómicas está en [`specs/04-tareas.md`](specs/04-tareas.md).
+
+- [x] **Día 0:** plazos, reglas de disputa y stack definidos (grilleo → `specs/`).
+- [ ] **Día 1:** setup, contrato congelado y núcleo del programa Anchor con sus tests.
+- [ ] **Día 2:** resto del programa y deploy en **devnet**. Base de la web (login con Privy) y de Supabase.
+- [ ] **Día 3:** pantallas del vendedor (crear link) y del comprador (pagar), con preview para WhatsApp.
+- [ ] **Día 4:** integración con devnet, acciones post-pago, indexado, liberación automática, panel de disputas y mails.
+- [ ] **Día 5:** pruebas end-to-end en devnet con 3 o 4 conocidos. Revisión del programa.
+- [ ] **Días 6–7:** métricas, video demo y pitch. **Mainnet-beta no está contemplado para la demo.**
 
 ## Métricas de tracción
 
@@ -242,14 +247,24 @@ Todas verificables on-chain o desde el backend:
 
 ## Preguntas abiertas
 
-- [ ] ¿Criterio para pasar de devnet a mainnet-beta?
+Resueltas en el grilleo del 2026-11-04 (detalle en `specs/`):
+
+- [x] Proveedor de cuenta embebida: **Privy**.
+- [x] Plazos: **5 días** para despachar desde el pago y **10 días** para reclamar desde el despacho.
+- [x] Comisión **1,5%** y depósito de disputa **5%**.
+- [x] Tope por orden en devnet: **500 USDC** (configurable).
+- [x] RPC: **Helius** (plan gratis).
+- [x] Mainnet-beta: fuera de la demo.
+
+Siguen abiertas:
+
+- [ ] ¿Criterio para pasar de devnet a mainnet-beta? ¿Tope por orden en mainnet?
 - [ ] ¿USDC solo, o también USDT?
-- [ ] ¿Qué proveedor de wallet embebida?
-- [ ] ¿Plazos exactos: días para enviar y horas para reclamar tras la entrega?
-- [ ] ¿Porcentaje del depósito de disputa y de la comisión?
-- [ ] ¿Qué correos tienen API pública de tracking?
-- [ ] ¿Tope por orden en mainnet?
-- [ ] ¿Qué RPC usar (público de devnet o un proveedor como Helius)?
+- [ ] ¿Qué correos tienen API pública de tracking? (para el tracking obligatorio del producto final)
+- [ ] ¿Verificación por teléfono o DNI? ¿Bloqueo de compradores por reputación?
+- [ ] ¿On-ramp integrado para compradores sin USDC?
+- [ ] ¿Links con slug corto (`/p/k3n9x`, como en el manual) en lugar de la pubkey de la orden?
+- [ ] SVG maestro del logo: falta en el repo.
 
 ---
 
