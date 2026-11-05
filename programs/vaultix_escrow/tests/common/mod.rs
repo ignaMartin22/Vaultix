@@ -244,4 +244,64 @@ impl TestEnv {
             .unwrap();
         self.svm.set_account(*address, account).unwrap();
     }
+
+    /// Creates an order in `Created` (the seller also pays the rent) and
+    /// returns its address.
+    pub fn create_order(
+        &mut self,
+        protocol: &Protocol,
+        seller: &Keypair,
+        order_id: u64,
+        amount: u64,
+    ) -> Pubkey {
+        let order = order_pda(&seller.pubkey(), order_id);
+        let ix = Instruction {
+            program_id: self.program_id,
+            accounts: vaultix_escrow::accounts::CreateOrder {
+                seller: seller.pubkey(),
+                payer: seller.pubkey(),
+                config: protocol.config,
+                mint: protocol.mint,
+                order,
+                vault: ata(&order, &protocol.mint),
+                token_program: anchor_spl::token::ID,
+                associated_token_program: anchor_spl::associated_token::ID,
+                system_program: system_program::ID,
+            }
+            .to_account_metas(None),
+            data: vaultix_escrow::instruction::CreateOrder {
+                order_id,
+                amount,
+                listing_hash: [0; 32],
+            }
+            .data(),
+        };
+        self.send(&[ix], &[seller]).unwrap();
+        order
+    }
+
+    /// A funded keypair with an ATA of the protocol mint holding `amount`.
+    pub fn funded_user(&mut self, protocol: &Protocol, amount: u64) -> (Keypair, Pubkey) {
+        let user = self.funded_keypair();
+        let token = self.create_ata(&protocol.mint, &user.pubkey());
+        let authority = protocol.mint_authority.insecure_clone();
+        self.mint_to(&protocol.mint, &authority, &token, amount);
+        (user, token)
+    }
+}
+
+pub fn pay_ix(order: Pubkey, mint: Pubkey, buyer: Pubkey, buyer_token: Pubkey) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::Pay {
+            buyer,
+            order,
+            mint,
+            buyer_token,
+            vault: ata(&order, &mint),
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::Pay {}.data(),
+    }
 }

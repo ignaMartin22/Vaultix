@@ -31,6 +31,10 @@ pub mod vaultix_escrow {
         handle_create_order(ctx, order_id, amount, listing_hash)
     }
 
+    pub fn pay(ctx: Context<Pay>) -> Result<()> {
+        handle_pay(ctx)
+    }
+
     pub fn close_order(ctx: Context<CloseOrder>) -> Result<()> {
         handle_close_order(ctx)
     }
