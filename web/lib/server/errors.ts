@@ -2,6 +2,8 @@
  * Uniform API errors (specs/02-backend.md §3): `{ error: { code, message } }`,
  * with `message` in Spanish, ready to show in the UI.
  */
+import { unstable_rethrow } from "next/navigation";
+
 export type ApiErrorCode =
   | "unauthorized"
   | "forbidden"
@@ -71,6 +73,8 @@ export function withErrors<Args extends unknown[]>(
     try {
       return await handler(...args);
     } catch (err) {
+      // Let Next.js internals through (e.g. the prerender bail-out on request.headers).
+      unstable_rethrow(err);
       return errorResponse(err);
     }
   };

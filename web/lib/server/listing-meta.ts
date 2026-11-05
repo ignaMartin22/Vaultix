@@ -3,6 +3,7 @@
  * cover photo. Listed publications are immutable, so this caches well.
  */
 import { cacheLife } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 
 import { ApiError } from "./errors";
 import { listingsApi } from "./listings";
@@ -30,7 +31,8 @@ async function cachedListingMeta(orderPda: string): Promise<ListingMeta | null> 
 export async function listingMeta(orderPda: string): Promise<ListingMeta | null> {
   try {
     return await cachedListingMeta(orderPda);
-  } catch {
+  } catch (err) {
+    unstable_rethrow(err);
     return null;
   }
 }
