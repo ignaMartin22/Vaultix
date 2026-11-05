@@ -18,10 +18,8 @@ import {
 } from "@solana/web3.js";
 
 import {
-  BPS_DENOMINATOR,
   DEFAULT_PROTOCOL,
   FINAL_STATUSES,
-  U64_MAX,
   VaultixError,
   type BuildCloseOrderParams,
   type BuildConfirmReceiptParams,
@@ -45,70 +43,21 @@ import {
   orderPda,
   vaultAddress,
 } from "./pdas";
+import {
+  checkedU64,
+  computeDisputeSplit,
+  computeReleaseSplit,
+  disputeDepositFor,
+} from "../fees";
 
-// ---------------------------------------------------------------------------
-// Pure math (02 §1.5): checked, floor rounding, remainder to the seller.
-// ---------------------------------------------------------------------------
-
-function checkedU64(value: bigint): bigint {
-  if (value < 0n || value > U64_MAX) throw new VaultixError("MathOverflow");
-  return value;
-}
-
-function bpsOf(amount: bigint, bps: number): bigint {
-  // u128 intermediate in Rust: amount (u64) * bps (u16) cannot overflow it.
-  return checkedU64((amount * BigInt(bps)) / BPS_DENOMINATOR);
-}
-
-export interface ReleaseSplit {
-  fee: bigint;
-  sellerNet: bigint;
-}
-
-export function computeReleaseSplit(amount: bigint, feeBps: number): ReleaseSplit {
-  const fee = bpsOf(amount, feeBps);
-  return { fee, sellerNet: checkedU64(amount - fee) };
-}
-
-export interface DisputeSplit {
-  buyerPart: bigint;
-  sellerGross: bigint;
-  fee: bigint;
-  sellerNet: bigint;
-  depositToBuyer: boolean;
-  /** Totals actually transferred, deposit included on its side. */
-  buyerTotal: bigint;
-  sellerTotal: bigint;
-}
-
-export function computeDisputeSplit(
-  amount: bigint,
-  feeBps: number,
-  buyerShareBps: number,
-  deposit: bigint,
-): DisputeSplit {
-  if (!Number.isInteger(buyerShareBps) || buyerShareBps < 0 || buyerShareBps > 10_000) {
-    throw new VaultixError("InvalidShareBps");
-  }
-  const buyerPart = bpsOf(amount, buyerShareBps);
-  const sellerGross = checkedU64(amount - buyerPart);
-  const fee = bpsOf(sellerGross, feeBps);
-  const sellerNet = checkedU64(sellerGross - fee);
-  const depositToBuyer = buyerShareBps >= 5_000;
-  return {
-    buyerPart,
-    sellerGross,
-    fee,
-    sellerNet,
-    depositToBuyer,
-    buyerTotal: checkedU64(buyerPart + (depositToBuyer ? deposit : 0n)),
-    sellerTotal: checkedU64(sellerNet + (depositToBuyer ? 0n : deposit)),
-  };
-}
-
-export function disputeDepositFor(amount: bigint, disputeDepositBps: number): bigint {
-  return bpsOf(amount, disputeDepositBps);
-}
+// Fee math lives in ../fees (shared with the UI and the backend).
+export {
+  computeDisputeSplit,
+  computeReleaseSplit,
+  disputeDepositFor,
+  type DisputeSplit,
+  type ReleaseSplit,
+} from "../fees";
 
 // ---------------------------------------------------------------------------
 // Mock instruction payload
