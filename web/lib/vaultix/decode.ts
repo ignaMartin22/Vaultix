@@ -5,11 +5,17 @@
 import { PublicKey } from "@solana/web3.js";
 
 import idl from "./idl.json";
-import { ORDER_STATUSES, type OrderAccount } from "./contract";
+import { ORDER_STATUSES, type ConfigAccount, type OrderAccount } from "./contract";
 
-export const ORDER_DISCRIMINATOR = Uint8Array.from(
-  idl.accounts.find((a) => a.name === "Order")!.discriminator,
-);
+function discriminator(name: string): Uint8Array {
+  return Uint8Array.from(idl.accounts.find((a) => a.name === name)!.discriminator);
+}
+
+export const ORDER_DISCRIMINATOR = discriminator("Order");
+export const CONFIG_DISCRIMINATOR = discriminator("Config");
+
+/** Byte offsets for `getProgramAccounts` memcmp filters on `Order`. */
+export const ORDER_OFFSETS = { status: 8, seller: 9, buyerTag: 41 } as const;
 
 class Reader {
   private offset = 0;
@@ -49,13 +55,34 @@ class Reader {
 }
 
 /** Decodes raw account data (discriminator included). Throws if it isn't an `Order`. */
-export function decodeOrderAccount(data: Uint8Array): OrderAccount {
-  if (data.length < 8 || !ORDER_DISCRIMINATOR.every((b, i) => data[i] === b)) {
-    throw new Error("Not an Order account");
+function reader(data: Uint8Array, expected: Uint8Array, name: string): Reader {
+  if (data.length < 8 || !expected.every((b, i) => data[i] === b)) {
+    throw new Error(`Not a Vaultix ${name} account`);
   }
   const r = new Reader(new DataView(data.buffer, data.byteOffset, data.byteLength), data);
-  // Skip the discriminator; fields are read in declaration order below.
+  // Skip the discriminator; fields are read in declaration order.
   for (let i = 0; i < 8; i++) r.u8();
+  return r;
+}
+
+export function decodeConfigAccount(data: Uint8Array): ConfigAccount {
+  const r = reader(data, CONFIG_DISCRIMINATOR, "Config");
+  return {
+    admin: r.pubkey(),
+    arbiter: r.pubkey(),
+    treasury: r.pubkey(),
+    allowedMint: r.pubkey(),
+    feeBps: r.u16(),
+    disputeDepositBps: r.u16(),
+    shipDeadlineSecs: r.i64(),
+    claimWindowSecs: r.i64(),
+    maxOrderAmount: r.u64(),
+    bump: r.u8(),
+  };
+}
+
+export function decodeOrderAccount(data: Uint8Array): OrderAccount {
+  const r = reader(data, ORDER_DISCRIMINATOR, "Order");
 
   const statusIndex = r.u8();
   const status = ORDER_STATUSES[statusIndex];
