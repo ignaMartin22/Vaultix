@@ -1,0 +1,77 @@
+# Builds and tests the Anchor program in CI so local machines don't have to.
+name: program
+
+on:
+  push:
+    paths:
+      - "programs/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Anchor.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/program.yml"
+  pull_request:
+    paths:
+      - "programs/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "Anchor.toml"
+      - "rust-toolchain.toml"
+      - ".github/workflows/program.yml"
+  workflow_dispatch:
+
+env:
+  ANCHOR_VERSION: "1.2.2"
+  SOLANA_VERSION: "4.3.0"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads rust-toolchain.toml (1.89.0 + rustfmt + clippy) and caches target/.
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: ""
+
+      - name: Cache Solana CLI and Anchor CLI
+        id: tools-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+            ~/.cargo/bin/anchor
+          key: tools-solana-${{ env.SOLANA_VERSION }}-anchor-${{ env.ANCHOR_VERSION }}
+
+      - name: Install Solana CLI
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/v${SOLANA_VERSION}/install)"
+
+      - name: Install Anchor CLI
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/solana-foundation/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked
+
+      - name: Add Solana to PATH
+        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: |
+          solana --version
+          anchor --version
+          rustc --version
+
+      # The program keypair is never committed, so CI builds with a throwaway one.
+      - name: Build program
+        run: anchor build --ignore-keys
+
+      - name: Test
+        run: cargo test -p vaultix_escrow
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Format
+        run: cargo fmt --check
