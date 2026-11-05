@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { useSession } from "@/lib/auth/session";
-import { getListingByOrder } from "@/lib/listings-client";
+import { getListingByOrder, listingMatchesOrder } from "@/lib/listings-client";
 import { whatsappUrl } from "@/lib/sell";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import { getVaultixClient, isMockClient } from "@/lib/vaultix/client";
@@ -93,6 +93,12 @@ export function OrderPage() {
     return <p className="text-plasma">No pudimos cargar este link. Probá de nuevo en un rato.</p>;
   }
   if (!listing.data || !order.data) return <p className="text-steel">{NOT_FOUND}</p>;
+  // The product shown must be the one this order commits to. A seller can close a
+  // Created order and re-create it at the same address with other terms; the old
+  // listing would then describe an order it no longer matches (X-03).
+  if (!listingMatchesOrder(listing.data.listing.listingHash, order.data.listingHash)) {
+    return <p className="text-steel">{NOT_FOUND}</p>;
+  }
 
   const o = order.data;
   const isSeller = session.pubkey?.equals(o.seller) ?? false;

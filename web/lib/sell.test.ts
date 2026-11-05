@@ -84,3 +84,15 @@ describe("shortAddress", () => {
     expect(shortAddress("short")).toBe("short");
   });
 });
+
+describe("listingMatchesOrder (X-03)", () => {
+  it("only shows a listing whose hash is the order's listing_hash", async () => {
+    const { listingMatchesOrder } = await import("./listings-client");
+    const { toHex } = await import("./listing-hash");
+    const hash = new Uint8Array(32).fill(7);
+    expect(listingMatchesOrder(toHex(hash), hash)).toBe(true);
+    // Same address, re-created order with other terms.
+    expect(listingMatchesOrder(toHex(hash), new Uint8Array(32).fill(8))).toBe(false);
+    expect(listingMatchesOrder(null, hash)).toBe(false);
+  });
+});

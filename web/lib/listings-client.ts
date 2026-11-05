@@ -6,7 +6,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 import { apiFetch, ApiClientError, type GetAccessToken } from "./api";
-import { listingHash } from "./listing-hash";
+import { listingHash, toHex } from "./listing-hash";
 import { USE_MOCK } from "./vaultix/mode";
 import { orderPda } from "./vaultix/pdas";
 
@@ -147,10 +147,15 @@ export function rememberMockListing(draft: Draft, input: DraftInput, seller: Pub
       description: input.description,
       amountUnits: input.amount.toString(),
       photoUrls: input.photos.map((f) => URL.createObjectURL(f)),
-      listingHash: null,
+      listingHash: toHex(draft.listingHash),
     },
     seller: { pubkey: seller.toBase58(), displayName: null, salesCompleted: 0 },
   });
+}
+
+/** The listing describes exactly this on-chain order (its hash equals `Order.listing_hash`). */
+export function listingMatchesOrder(listingHashHex: string | null, orderListingHash: Uint8Array): boolean {
+  return listingHashHex !== null && listingHashHex === toHex(orderListingHash);
 }
 
 /** `null` when the link doesn't exist or isn't listed. */
