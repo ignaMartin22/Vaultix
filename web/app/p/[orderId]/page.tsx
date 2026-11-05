@@ -2,12 +2,23 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { OrderPage } from "@/components/order/OrderPage";
+import { formatUsdc } from "@/lib/amounts";
+import { listingMeta } from "@/lib/server/listing-meta";
 
-// W-06 replaces this with per-link metadata and the Open Graph image.
-export const metadata: Metadata = {
+const GENERIC: Metadata = {
   title: "Pago protegido · Vaultix",
   description: "La plata queda en bóveda hasta que confirmes que llegó.",
 };
+
+/** 03 §5.4: "{producto} — Pago protegido con Vaultix" when the link exists. */
+export async function generateMetadata({ params }: { params: Promise<{ orderId: string }> }): Promise<Metadata> {
+  const { orderId } = await params;
+  const meta = await listingMeta(orderId);
+  if (!meta) return GENERIC;
+  const title = `${meta.title} — Pago protegido con Vaultix`;
+  const description = `${formatUsdc(BigInt(meta.amountUnits))}. La plata queda en bóveda hasta que te llega.`;
+  return { title, description, openGraph: { title, description }, twitter: { card: "summary_large_image", title, description } };
+}
 
 export default function PaymentLinkPage() {
   return (
