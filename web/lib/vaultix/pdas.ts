@@ -1,19 +1,17 @@
 import { PublicKey } from "@solana/web3.js";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 
 import { CONFIG_SEED, ORDER_SEED, U64_MAX } from "./contract";
 
 /** Program id of the localnet/devnet build (Anchor.toml); overridden by env. */
 export const DEFAULT_PROGRAM_ID = "Fg215nqtnNCBuZY4obrSUVbueGHxpfViP5Mfw3DxZ6Bg";
 
-export const TOKEN_PROGRAM_ID = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
-);
-export const TOKEN_2022_PROGRAM_ID = new PublicKey(
-  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-);
-export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xTPQ4oCKmzeBj4hAh",
-);
+// From spl-token, the single source of truth for these ids.
+export { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID };
 
 export const PROGRAM_ID = new PublicKey(
   process.env.NEXT_PUBLIC_PROGRAM_ID || DEFAULT_PROGRAM_ID,
