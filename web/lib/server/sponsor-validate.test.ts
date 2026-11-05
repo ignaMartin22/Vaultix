@@ -156,9 +156,9 @@ describe("validateSponsoredTx: rule 2 (fee payer only pays rent)", () => {
   });
 
   it("rejects ATAs for another mint, another owner, or owned by the fee payer", () => {
-    const otherMint = tx([ataCreateIdempotent(seller.publicKey, Keypair.generate().publicKey), vaultixIx("release")]);
+    const otherMint = tx([ataCreateIdempotent(seller.publicKey, Keypair.generate().publicKey), vaultixIx("release")], []);
     expectRejected(() => validateSponsoredTx(otherMint, ctx), /otro token/);
-    const otherOwner = tx([ataCreateIdempotent(stranger.publicKey), vaultixIx("release")]);
+    const otherOwner = tx([ataCreateIdempotent(stranger.publicKey), vaultixIx("release")], []);
     expectRejected(() => validateSponsoredTx(otherOwner, ctx), /otra persona/);
   });
 });
@@ -197,7 +197,7 @@ describe("validateSponsoredTx: rule 3 (allowlist)", () => {
   });
 
   it("rejects transactions with no vaultix instruction", () => {
-    expectRejected(() => validateSponsoredTx(tx([ataCreateIdempotent(seller.publicKey)]), ctx), /ninguna operación/);
+    expectRejected(() => validateSponsoredTx(tx([ataCreateIdempotent(seller.publicKey)], []), ctx), /ninguna operación/);
   });
 
   it("rejects garbage on the wire", () => {
