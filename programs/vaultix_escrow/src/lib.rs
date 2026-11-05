@@ -43,6 +43,14 @@ pub mod vaultix_escrow {
         handle_refund_unshipped(ctx)
     }
 
+    pub fn confirm_receipt(ctx: Context<ConfirmReceipt>) -> Result<()> {
+        handle_confirm_receipt(ctx)
+    }
+
+    pub fn release(ctx: Context<Release>) -> Result<()> {
+        handle_release(ctx)
+    }
+
     pub fn close_order(ctx: Context<CloseOrder>) -> Result<()> {
         handle_close_order(ctx)
     }

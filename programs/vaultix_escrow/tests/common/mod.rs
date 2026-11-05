@@ -332,3 +332,62 @@ pub fn refund_unshipped_ix(order: Pubkey, mint: Pubkey, buyer_token: Pubkey) -> 
         data: vaultix_escrow::instruction::RefundUnshipped {}.data(),
     }
 }
+
+pub fn confirm_receipt_ix(
+    order: Pubkey,
+    mint: Pubkey,
+    buyer: Pubkey,
+    seller_token: Pubkey,
+    treasury: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::ConfirmReceipt {
+            buyer,
+            order,
+            config: config_pda(),
+            mint,
+            vault: ata(&order, &mint),
+            seller_token,
+            treasury,
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::ConfirmReceipt {}.data(),
+    }
+}
+
+pub fn release_ix(
+    order: Pubkey,
+    mint: Pubkey,
+    seller_token: Pubkey,
+    treasury: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::Release {
+            order,
+            config: config_pda(),
+            mint,
+            vault: ata(&order, &mint),
+            seller_token,
+            treasury,
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::Release {}.data(),
+    }
+}
+
+pub fn update_config_ix(admin: Pubkey, treasury: Pubkey, args: ConfigArgs) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::UpdateConfig {
+            admin,
+            config: config_pda(),
+            treasury,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::UpdateConfig { args }.data(),
+    }
+}
