@@ -74,6 +74,19 @@ jobs:
       - name: Build program
         run: anchor build --ignore-keys
 
+      # The program id comes from declare_id!, so this .so is deployable as-is
+      # (devnet only) and the IDL/types feed `pnpm sync-idl` without a local build.
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: vaultix-escrow-build
+          path: |
+            target/deploy/vaultix_escrow.so
+            target/idl/vaultix_escrow.json
+            target/types/vaultix_escrow.ts
+          if-no-files-found: error
+          retention-days: 14
+
       # After the first build, ~/.cache/solana also holds the SBF platform tools.
       - name: Save Solana CLI and Anchor CLI
         if: steps.tools-cache.outputs.cache-hit != 'true'
