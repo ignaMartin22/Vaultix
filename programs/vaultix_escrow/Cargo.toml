@@ -14,13 +14,14 @@ default = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
 
 [dependencies]
 anchor-lang = "1.2.2"
+anchor-spl = "1.2.2"
 
 [dev-dependencies]
 # Versions match LiteSVM 0.15 (Rust 1.89, pinned by Anchor 1.2.2).
