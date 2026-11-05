@@ -13,7 +13,7 @@ Web Next.js (App Router) en `web/`. Mobile-first: se diseña a **375 px** y se e
 | Fuentes | `next/font`: Inter (UI y títulos; Inter Display si está disponible) + JetBrains Mono (datos) |
 | Auth y cuentas | Privy: email, Google y conexión de Phantom/Solflare |
 | Datos | TanStack Query: lecturas on-chain y de la API |
-| Programa | `@coral-xyz/anchor` + IDL en `lib/vaultix/` |
+| Programa | `@anchor-lang/core` + `@solana/web3.js` 1.x + IDL en `lib/vaultix/` |
 | Hero | vgpu (WebGPU) con fallback CSS |
 | Tests | Vitest en `lib/` |
 

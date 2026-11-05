@@ -63,7 +63,7 @@ El estado de una orden **siempre** se lee de la cuenta `Order` (o de sus eventos
 | Red | Solana **devnet** | Mint: USDC de devnet de Circle |
 | RPC | **Helius**, plan gratis | `NEXT_PUBLIC_SOLANA_RPC` |
 | Web | Next.js (App Router) + TypeScript estricto | Desplegado en **Vercel** |
-| Cliente del programa | `@solana/web3.js` + `@coral-xyz/anchor` con el IDL generado | Centralizado en `web/lib/vaultix/` |
+| Cliente del programa | `@solana/web3.js` **1.x** + `@anchor-lang/core` (cliente TS de Anchor 1.x) con el IDL generado | Centralizado en `web/lib/vaultix/`. `@anchor-lang/core` exige web3.js `^1.69`: no subir a web3.js 2+/3+. `@solana/kit` está solo porque lo pide Privy para Solana |
 | Auth y cuentas | **Privy**: email/Google con cuenta Solana embebida; Phantom/Solflare con el mismo SDK | Sin Wallet Adapter aparte |
 | Estilos | Tailwind CSS v4 con `@theme` mapeado a `styles/tokens.css` | Sin librería de componentes |
 | Estado asíncrono | TanStack Query | |
