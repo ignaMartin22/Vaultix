@@ -73,8 +73,11 @@ cargo fmt
 
 # Deploy a devnet (solo devnet)
 anchor deploy --provider.cluster devnet
+# Sin build local: bajá el artifact vaultix-escrow-build de CI a target/ y
+# solana program deploy target/deploy/vaultix_escrow.so --program-id target/deploy/vaultix_escrow-keypair.json --url devnet
 pnpm seed:devnet                 # Config + tesorería (idempotente)
 pnpm sync-idl                    # copia IDL y tipos a web/lib/vaultix/
+pnpm demo:orders                 # 3 órdenes demo en Created (idempotente)
 
 # Web
 cd web

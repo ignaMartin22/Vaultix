@@ -266,6 +266,7 @@ Siguen abiertas:
 - [ ] ¿Links con slug corto (`/p/k3n9x`, como en el manual) en lugar de la pubkey de la orden?
 - [ ] SVG maestro del logo: falta en el repo.
 - [ ] `initialize_config` lo puede llamar cualquiera la primera vez y quedar como admin. En devnet alcanza con correr el seed enseguida del deploy; antes de mainnet, ¿restringirlo a la upgrade authority del programa?
+- [ ] Árbitro en devnet: por ahora es la keypair del admin (`9NMAvdKGJibTUFW4mWRfVd4sZRpLNo3fQCQMqdrXXV89`), provisorio. Falta la pubkey de la Phantom del equipo para pasarla con `update_config`.
 
 ---
 

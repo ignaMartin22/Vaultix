@@ -5,6 +5,20 @@
   "packageManager": "pnpm@10.34.9",
   "scripts": {
     "web:dev": "pnpm --filter web dev",
-    "web:check": "pnpm --filter web lint && pnpm --filter web typecheck"
+    "web:check": "pnpm --filter web lint && pnpm --filter web typecheck",
+    "seed:devnet": "node --env-file-if-exists=.env --import tsx scripts/seed-devnet.ts",
+    "demo:orders": "node --env-file-if-exists=.env --import tsx scripts/demo-orders.ts",
+    "sync-idl": "tsx scripts/sync-idl.ts",
+    "scripts:typecheck": "tsc -p scripts"
+  },
+  "dependencies": {
+    "@anchor-lang/core": "1.2.2",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }
