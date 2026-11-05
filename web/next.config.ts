@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { wgslTurbopackRule } from "@vgpu/wgsl/next";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -14,6 +15,8 @@ const nextConfig: NextConfig = {
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
       },
+      // vgpu: .wgsl imports become prepared, typed shader modules (05 §4.1).
+      "*.wgsl": wgslTurbopackRule({ minify: true }),
     },
   },
 };

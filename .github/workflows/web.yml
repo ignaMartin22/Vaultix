@@ -39,6 +39,10 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # Reflection + syntax check of the hero shader (no GPU in CI, so no device validation).
+      - name: Shader check
+        run: pnpm --filter web exec vgpu check components/spectral.wgsl
+
       - name: Scripts typecheck
         run: pnpm scripts:typecheck
 
