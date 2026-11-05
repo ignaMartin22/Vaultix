@@ -197,7 +197,10 @@ fn config_rejects_zero_max_order_amount() {
     let treasury = s.treasury;
     let res = update(&mut s, &admin, treasury, zero_cap());
     assert_program_error(&res, VaultixError::InvalidAmount);
-    assert_eq!(read_config(&s).max_order_amount, default_args().max_order_amount);
+    assert_eq!(
+        read_config(&s).max_order_amount,
+        default_args().max_order_amount
+    );
 }
 
 #[test]
