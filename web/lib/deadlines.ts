@@ -85,3 +85,15 @@ export function formatDeadline(at: bigint): string {
   );
   return `${parts.weekday} ${parts.day}/${parts.month}, ${parts.hour}:${parts.minute}`;
 }
+
+const SHORT_FORMAT = new Intl.DateTimeFormat("es-AR", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "America/Argentina/Buenos_Aires",
+});
+
+/** "12/11" (Argentina time), for compact cards. */
+export function formatShortDate(at: bigint): string {
+  const parts = Object.fromEntries(SHORT_FORMAT.formatToParts(new Date(Number(at) * 1000)).map((p) => [p.type, p.value]));
+  return `${parts.day}/${parts.month}`;
+}

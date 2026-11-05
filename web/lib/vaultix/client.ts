@@ -106,6 +106,18 @@ export class AnchorVaultixClient implements VaultixClient {
     return accounts.map(({ pubkey, account }) => ({ address: pubkey, account: decodeOrderAccount(account.data) }));
   }
 
+  /** Many orders in one round trip per 100 (`getMultipleAccountsInfo`); null if closed. */
+  async getOrdersByAddress(addresses: PublicKey[]): Promise<(OrderAccount | null)[]> {
+    const out: (OrderAccount | null)[] = [];
+    for (let i = 0; i < addresses.length; i += 100) {
+      const infos = await this.connection.getMultipleAccountsInfo(addresses.slice(i, i + 100), "confirmed");
+      for (const info of infos) {
+        out.push(info && info.owner.equals(this.programId) ? decodeOrderAccount(info.data) : null);
+      }
+    }
+    return out;
+  }
+
   async getUsdcBalance(owner: PublicKey): Promise<bigint> {
     const config = await this.config();
     const ata = associatedTokenAddress(owner, config.allowedMint, await this.tokenProgram());
