@@ -9,7 +9,8 @@
     "seed:devnet": "node --env-file-if-exists=.env --import tsx scripts/seed-devnet.ts",
     "demo:orders": "node --env-file-if-exists=.env --import tsx scripts/demo-orders.ts",
     "sync-idl": "tsx scripts/sync-idl.ts",
-    "scripts:typecheck": "tsc -p scripts"
+    "scripts:typecheck": "tsc -p scripts",
+    "helius:webhook": "node --env-file-if-exists=.env --import tsx scripts/register-helius-webhook.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.2",
