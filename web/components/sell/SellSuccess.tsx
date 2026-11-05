@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
@@ -51,6 +53,12 @@ export function SellSuccess({ link, title, amount, onCreateAnother }: SellSucces
         <Button variant="secondary" onClick={() => void copy()}>
           Copiar link
         </Button>
+        <Link
+          href={new URL(link).pathname}
+          className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-steel px-5 text-body font-medium text-bone hover:bg-graphite"
+        >
+          Ver cómo lo ve tu comprador
+        </Link>
         <Button variant="secondary" onClick={onCreateAnother}>
           Crear otro link
         </Button>

@@ -8,7 +8,15 @@ import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { ApiClientError } from "@/lib/api";
 import { useSession } from "@/lib/auth/session";
-import { activateListing, createDraft, paymentLink, uploadPhotos, type Draft } from "@/lib/listings-client";
+import {
+  activateListing,
+  createDraft,
+  paymentLink,
+  rememberMockListing,
+  uploadPhotos,
+  type Draft,
+} from "@/lib/listings-client";
+import { USE_MOCK } from "@/lib/vaultix/mode";
 import { isOrderIdCollision } from "@/lib/tx/errors";
 import type { TxPhase } from "@/lib/tx/run";
 import { useVaultixTx, vaultixKeys } from "@/lib/tx/useVaultixTx";
@@ -95,6 +103,7 @@ export function SellFlow() {
         }
       }
 
+      if (USE_MOCK) rememberMockListing(draft.current!, form, seller);
       setDone({
         link: paymentLink(window.location.origin, draft.current!.orderPda),
         title: form.title,

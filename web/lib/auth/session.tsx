@@ -92,7 +92,13 @@ export function MockSessionProvider({ children }: { children: ReactNode }) {
       authenticated: keypair !== null,
       pubkey: keypair?.publicKey ?? null,
       login,
-      logout: async () => setKeypair(null),
+      // Logging out forgets the test account: the next login is a different person.
+      logout: async () => {
+        try {
+          window.sessionStorage.removeItem(MOCK_KEY);
+        } catch {}
+        setKeypair(null);
+      },
       getAccessToken: async () => null,
       async signTransaction(tx) {
         if (!keypair) throw new Error("No hay una sesión abierta.");

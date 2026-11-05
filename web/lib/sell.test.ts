@@ -76,3 +76,11 @@ describe("mock sell flow", () => {
     expect(isOrderIdCollision(second)).toBe(true);
   });
 });
+
+describe("shortAddress", () => {
+  it("keeps the first and last 4 characters", async () => {
+    const { shortAddress } = await import("./format");
+    expect(shortAddress("8F3aXXXXXXXXXXXXc41E")).toBe("8F3a…c41E");
+    expect(shortAddress("short")).toBe("short");
+  });
+});

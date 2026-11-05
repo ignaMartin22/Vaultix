@@ -5,7 +5,7 @@
  */
 import { PublicKey } from "@solana/web3.js";
 
-import { apiFetch, type GetAccessToken } from "./api";
+import { apiFetch, ApiClientError, type GetAccessToken } from "./api";
 import { listingHash } from "./listing-hash";
 import { USE_MOCK } from "./vaultix/mode";
 import { orderPda } from "./vaultix/pdas";
@@ -116,4 +116,74 @@ export async function activateListing(
 /** The public link of an order: `/p/<orderPda>`. */
 export function paymentLink(origin: string, orderPda: PublicKey): string {
   return `${origin}/p/${orderPda.toBase58()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Public view of a link (`/p/[orderId]`) and the buyer's shipping address
+// ---------------------------------------------------------------------------
+
+export interface PublicListing {
+  listing: {
+    id: string;
+    orderPda: string;
+    title: string;
+    description: string;
+    amountUnits: string;
+    photoUrls: string[];
+    listingHash: string | null;
+  };
+  seller: { pubkey: string; displayName: string | null; salesCompleted: number };
+}
+
+/** Mock mode: listings activated in this tab, so `/p` can show them. */
+const mockListings = new Map<string, PublicListing>();
+
+export function rememberMockListing(draft: Draft, input: DraftInput, seller: PublicKey): void {
+  mockListings.set(draft.orderPda.toBase58(), {
+    listing: {
+      id: draft.id,
+      orderPda: draft.orderPda.toBase58(),
+      title: input.title,
+      description: input.description,
+      amountUnits: input.amount.toString(),
+      photoUrls: input.photos.map((f) => URL.createObjectURL(f)),
+      listingHash: null,
+    },
+    seller: { pubkey: seller.toBase58(), displayName: null, salesCompleted: 0 },
+  });
+}
+
+/** `null` when the link doesn't exist or isn't listed. */
+export async function getListingByOrder(orderPda: string): Promise<PublicListing | null> {
+  if (USE_MOCK) return mockListings.get(orderPda) ?? null;
+  try {
+    return await apiFetch<PublicListing>(`/api/listings/by-order/${encodeURIComponent(orderPda)}`);
+  } catch (err) {
+    if (err instanceof ApiClientError && err.code === "not_found") return null;
+    throw err;
+  }
+}
+
+export interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  notes: string;
+}
+
+const mockShipping = new Map<string, ShippingAddress>();
+
+export async function saveShippingAddress(
+  orderPda: string,
+  address: ShippingAddress,
+  getAccessToken: GetAccessToken,
+): Promise<void> {
+  if (USE_MOCK) {
+    mockShipping.set(orderPda, address);
+    return;
+  }
+  await apiFetch("/api/shipping", { method: "POST", getAccessToken, body: { orderPda, ...address } });
 }
