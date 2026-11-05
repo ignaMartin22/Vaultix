@@ -265,6 +265,7 @@ Siguen abiertas:
 - [ ] ¿On-ramp integrado para compradores sin USDC?
 - [ ] ¿Links con slug corto (`/p/k3n9x`, como en el manual) en lugar de la pubkey de la orden?
 - [ ] SVG maestro del logo: falta en el repo.
+- [ ] `initialize_config` lo puede llamar cualquiera la primera vez y quedar como admin. En devnet alcanza con correr el seed enseguida del deploy; antes de mainnet, ¿restringirlo a la upgrade authority del programa?
 
 ---
 
