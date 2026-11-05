@@ -4,7 +4,9 @@
 
 use anchor_lang::{
     error::ERROR_CODE_OFFSET, prelude::Pubkey, solana_program::instruction::Instruction,
+    system_program, AccountDeserialize, AccountSerialize, InstructionData, ToAccountMetas,
 };
+use anchor_spl::associated_token::get_associated_token_address_with_program_id;
 use litesvm::{
     types::{FailedTransactionMetadata, TransactionMetadata},
     LiteSVM,
@@ -18,7 +20,12 @@ use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
-use vaultix_escrow::errors::VaultixError;
+use vaultix_escrow::{
+    constants::{CONFIG_SEED, ORDER_SEED},
+    errors::VaultixError,
+    instructions::ConfigArgs,
+    state::Order,
+};
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const USDC_DECIMALS: u8 = 6;
@@ -136,5 +143,105 @@ pub fn assert_program_error(res: &TxResult, expected: VaultixError) {
             e.err,
             e.meta.logs
         ),
+    }
+}
+
+// ---------- protocol helpers ----------
+
+pub fn config_pda() -> Pubkey {
+    Pubkey::find_program_address(&[CONFIG_SEED], &vaultix_escrow::id()).0
+}
+
+pub fn order_pda(seller: &Pubkey, order_id: u64) -> Pubkey {
+    Pubkey::find_program_address(
+        &[ORDER_SEED, seller.as_ref(), &order_id.to_le_bytes()],
+        &vaultix_escrow::id(),
+    )
+    .0
+}
+
+/// ATA under the classic SPL Token program (what the test mints use).
+pub fn ata(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
+    get_associated_token_address_with_program_id(owner, mint, &anchor_spl::token::ID)
+}
+
+pub fn default_config_args(arbiter: Pubkey) -> ConfigArgs {
+    ConfigArgs {
+        arbiter,
+        fee_bps: 150,
+        dispute_deposit_bps: 500,
+        ship_deadline_secs: 432_000,
+        claim_window_secs: 864_000,
+        max_order_amount: 500 * ONE_USDC,
+    }
+}
+
+/// An initialized Config with its mint and treasury.
+pub struct Protocol {
+    pub admin: Keypair,
+    pub arbiter: Keypair,
+    pub mint_authority: Keypair,
+    pub mint: Pubkey,
+    pub treasury: Pubkey,
+    pub config: Pubkey,
+}
+
+impl TestEnv {
+    pub fn init_protocol(&mut self) -> Protocol {
+        let admin = self.funded_keypair();
+        let arbiter = self.funded_keypair();
+        let mint_authority = self.funded_keypair();
+        let mint = self.create_mint(&mint_authority.pubkey());
+        let treasury = self.create_ata(&mint, &admin.pubkey());
+        let config = config_pda();
+        let ix = Instruction {
+            program_id: self.program_id,
+            accounts: vaultix_escrow::accounts::InitializeConfig {
+                admin: admin.pubkey(),
+                config,
+                allowed_mint: mint,
+                treasury,
+                system_program: system_program::ID,
+            }
+            .to_account_metas(None),
+            data: vaultix_escrow::instruction::InitializeConfig {
+                args: default_config_args(arbiter.pubkey()),
+            }
+            .data(),
+        };
+        self.send(&[ix], &[&admin]).unwrap();
+        Protocol {
+            admin,
+            arbiter,
+            mint_authority,
+            mint,
+            treasury,
+            config,
+        }
+    }
+
+    pub fn lamports(&self, address: &Pubkey) -> u64 {
+        self.svm.get_account(address).map_or(0, |a| a.lamports)
+    }
+
+    pub fn account_exists(&self, address: &Pubkey) -> bool {
+        self.svm
+            .get_account(address)
+            .is_some_and(|a| a.lamports > 0)
+    }
+
+    pub fn read_order(&self, order: &Pubkey) -> Order {
+        let account = self.svm.get_account(order).unwrap();
+        Order::try_deserialize(&mut account.data.as_slice()).unwrap()
+    }
+
+    /// Overwrites an order in place, to reach states whose instructions
+    /// are tested elsewhere.
+    pub fn write_order(&mut self, address: &Pubkey, order: &Order) {
+        let mut account = self.svm.get_account(address).unwrap();
+        order
+            .try_serialize(&mut account.data.as_mut_slice())
+            .unwrap();
+        self.svm.set_account(*address, account).unwrap();
     }
 }

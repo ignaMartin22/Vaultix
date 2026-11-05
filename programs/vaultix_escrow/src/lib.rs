@@ -21,4 +21,17 @@ pub mod vaultix_escrow {
     pub fn update_config(ctx: Context<UpdateConfig>, args: ConfigArgs) -> Result<()> {
         handle_update_config(ctx, args)
     }
+
+    pub fn create_order(
+        ctx: Context<CreateOrder>,
+        order_id: u64,
+        amount: u64,
+        listing_hash: [u8; 32],
+    ) -> Result<()> {
+        handle_create_order(ctx, order_id, amount, listing_hash)
+    }
+
+    pub fn close_order(ctx: Context<CloseOrder>) -> Result<()> {
+        handle_close_order(ctx)
+    }
 }
