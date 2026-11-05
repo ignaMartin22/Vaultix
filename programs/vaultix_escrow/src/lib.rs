@@ -35,6 +35,14 @@ pub mod vaultix_escrow {
         handle_pay(ctx)
     }
 
+    pub fn mark_shipped(ctx: Context<MarkShipped>, tracking_hash: Option<[u8; 32]>) -> Result<()> {
+        handle_mark_shipped(ctx, tracking_hash)
+    }
+
+    pub fn refund_unshipped(ctx: Context<RefundUnshipped>) -> Result<()> {
+        handle_refund_unshipped(ctx)
+    }
+
     pub fn close_order(ctx: Context<CloseOrder>) -> Result<()> {
         handle_close_order(ctx)
     }

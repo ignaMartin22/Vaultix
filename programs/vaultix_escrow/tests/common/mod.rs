@@ -305,3 +305,30 @@ pub fn pay_ix(order: Pubkey, mint: Pubkey, buyer: Pubkey, buyer_token: Pubkey) -
         data: vaultix_escrow::instruction::Pay {}.data(),
     }
 }
+
+pub fn mark_shipped_ix(
+    order: Pubkey,
+    seller: Pubkey,
+    tracking_hash: Option<[u8; 32]>,
+) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::MarkShipped { seller, order }.to_account_metas(None),
+        data: vaultix_escrow::instruction::MarkShipped { tracking_hash }.data(),
+    }
+}
+
+pub fn refund_unshipped_ix(order: Pubkey, mint: Pubkey, buyer_token: Pubkey) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::RefundUnshipped {
+            order,
+            mint,
+            vault: ata(&order, &mint),
+            buyer_token,
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::RefundUnshipped {}.data(),
+    }
+}
