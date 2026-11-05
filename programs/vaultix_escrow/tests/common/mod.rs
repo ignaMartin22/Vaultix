@@ -445,3 +445,24 @@ pub fn resolve_dispute_ix(
         data: vaultix_escrow::instruction::ResolveDispute { buyer_share_bps }.data(),
     }
 }
+
+pub fn close_order_ix(
+    order: Pubkey,
+    mint: Pubkey,
+    caller: Pubkey,
+    rent_payer: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::CloseOrder {
+            caller,
+            order,
+            mint,
+            vault: ata(&order, &mint),
+            rent_payer,
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::CloseOrder {}.data(),
+    }
+}
