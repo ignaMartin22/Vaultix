@@ -17,7 +17,7 @@ import { useSession } from "../auth/session";
 import { getVaultixClient, isMockClient, solanaRpcUrl } from "../vaultix/client";
 import type { VaultixClient } from "../vaultix/contract";
 import { txErrorMessage } from "./errors";
-import { needsUserSignature, runTx, type TxPhase, type TxSteps } from "./run";
+import { needsSignatureFrom, runTx, type TxPhase, type TxSteps } from "./run";
 
 export const vaultixKeys = {
   config: ["vaultix", "config"] as const,
@@ -73,13 +73,13 @@ export function useVaultixTx(options: UseVaultixTxOptions) {
     const steps: TxSteps = isMockClient(client)
       ? {
           build: () => opts.build(client),
-          sign: async (tx) => (needsUserSignature(tx) ? session.signTransaction(tx) : tx),
+          sign: async (tx) => (needsSignatureFrom(tx, session.pubkey) ? session.signTransaction(tx) : tx),
           send: async (tx) => client.applyTransaction(tx).signature,
           confirm: async () => {},
         }
       : {
           build: () => opts.build(client),
-          sign: async (tx) => (needsUserSignature(tx) ? session.signTransaction(tx) : tx),
+          sign: async (tx) => (needsSignatureFrom(tx, session.pubkey) ? session.signTransaction(tx) : tx),
           async send(tx) {
             if (opts.sponsored === false) {
               return rpc().sendRawTransaction(tx.serialize(), { preflightCommitment: "confirmed" });

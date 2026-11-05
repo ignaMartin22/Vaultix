@@ -3,7 +3,7 @@
  * build → sign → send → confirm, rebuilding up to 3 times when the blockhash
  * expires (01 §5.1 step 5). `useVaultixTx` plugs Privy and the sponsor in.
  */
-import { TransactionExpiredBlockheightExceededError, type Transaction } from "@solana/web3.js";
+import { TransactionExpiredBlockheightExceededError, type PublicKey, type Transaction } from "@solana/web3.js";
 
 import { ApiClientError } from "../api";
 
@@ -51,7 +51,12 @@ export async function runTx(
   }
 }
 
-/** True if someone other than the fee payer has to sign (not for `release`/`refund_unshipped`). */
-export function needsUserSignature(tx: Transaction): boolean {
-  return tx.compileMessage().header.numRequiredSignatures > 1;
+/**
+ * True if `signer` is one of the required signers, fee payer included: the
+ * arbiter pays for `resolve_dispute`, so there it is the only signer.
+ */
+export function needsSignatureFrom(tx: Transaction, signer: PublicKey | null): boolean {
+  if (!signer) return false;
+  const message = tx.compileMessage();
+  return message.accountKeys.slice(0, message.header.numRequiredSignatures).some((k) => k.equals(signer));
 }

@@ -2,7 +2,7 @@ import { Keypair, Transaction, TransactionExpiredBlockheightExceededError, Trans
 import { describe, expect, it, vi } from "vitest";
 
 import { ApiClientError } from "../api";
-import { needsUserSignature, runTx, type TxPhase, type TxSteps } from "./run";
+import { needsSignatureFrom, runTx, type TxPhase, type TxSteps } from "./run";
 
 const feePayer = Keypair.generate().publicKey;
 const user = Keypair.generate().publicKey;
@@ -68,9 +68,14 @@ describe("runTx", () => {
   });
 });
 
-describe("needsUserSignature", () => {
-  it("is false when only the fee payer signs", () => {
-    expect(needsUserSignature(tx())).toBe(false);
-    expect(needsUserSignature(tx([user]))).toBe(true);
+describe("needsSignatureFrom", () => {
+  it("is false for permissionless transactions (only the fee payer signs)", () => {
+    expect(needsSignatureFrom(tx(), user)).toBe(false);
+    expect(needsSignatureFrom(tx([user]), null)).toBe(false);
+  });
+
+  it("is true when the user signs, including as the fee payer (the arbiter)", () => {
+    expect(needsSignatureFrom(tx([user]), user)).toBe(true);
+    expect(needsSignatureFrom(tx(), feePayer)).toBe(true);
   });
 });
