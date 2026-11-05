@@ -9,6 +9,8 @@ export type ApiErrorCode =
   | "bad_request"
   | "no_wallet"
   | "rate_limited"
+  | "blockhash_expired"
+  | "tx_failed"
   | "internal";
 
 const STATUS: Record<ApiErrorCode, number> = {
@@ -18,6 +20,8 @@ const STATUS: Record<ApiErrorCode, number> = {
   bad_request: 400,
   no_wallet: 409,
   rate_limited: 429,
+  blockhash_expired: 409,
+  tx_failed: 422,
   internal: 500,
 };
 
@@ -28,6 +32,8 @@ const DEFAULT_MESSAGE: Record<ApiErrorCode, string> = {
   bad_request: "Revisá los datos e intentá de nuevo.",
   no_wallet: "Tu cuenta todavía no está lista. Volvé a entrar en unos segundos.",
   rate_limited: "Hiciste muchas operaciones hoy. Probá de nuevo mañana.",
+  blockhash_expired: "La operación tardó demasiado. Probá de nuevo.",
+  tx_failed: "La operación no se pudo completar. Revisá el estado de la orden e intentá de nuevo.",
   internal: "Algo salió mal de nuestro lado. Probá de nuevo en un rato.",
 };
 
