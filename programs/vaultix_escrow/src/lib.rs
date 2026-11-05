@@ -51,6 +51,14 @@ pub mod vaultix_escrow {
         handle_release(ctx)
     }
 
+    pub fn open_dispute(ctx: Context<OpenDispute>) -> Result<()> {
+        handle_open_dispute(ctx)
+    }
+
+    pub fn resolve_dispute(ctx: Context<ResolveDispute>, buyer_share_bps: u16) -> Result<()> {
+        handle_resolve_dispute(ctx, buyer_share_bps)
+    }
+
     pub fn close_order(ctx: Context<CloseOrder>) -> Result<()> {
         handle_close_order(ctx)
     }

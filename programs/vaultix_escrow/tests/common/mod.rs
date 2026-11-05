@@ -391,3 +391,57 @@ pub fn update_config_ix(admin: Pubkey, treasury: Pubkey, args: ConfigArgs) -> In
         data: vaultix_escrow::instruction::UpdateConfig { args }.data(),
     }
 }
+
+pub fn open_dispute_ix(
+    order: Pubkey,
+    mint: Pubkey,
+    buyer: Pubkey,
+    buyer_token: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::OpenDispute {
+            buyer,
+            order,
+            mint,
+            vault: ata(&order, &mint),
+            buyer_token,
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::OpenDispute {}.data(),
+    }
+}
+
+/// Destination accounts of a dispute resolution.
+#[derive(Clone, Copy)]
+pub struct Parties {
+    pub buyer_token: Pubkey,
+    pub seller_token: Pubkey,
+    pub treasury: Pubkey,
+}
+
+pub fn resolve_dispute_ix(
+    order: Pubkey,
+    mint: Pubkey,
+    arbiter: Pubkey,
+    parties: &Parties,
+    buyer_share_bps: u16,
+) -> Instruction {
+    Instruction {
+        program_id: vaultix_escrow::id(),
+        accounts: vaultix_escrow::accounts::ResolveDispute {
+            arbiter,
+            config: config_pda(),
+            order,
+            mint,
+            vault: ata(&order, &mint),
+            buyer_token: parties.buyer_token,
+            seller_token: parties.seller_token,
+            treasury: parties.treasury,
+            token_program: anchor_spl::token::ID,
+        }
+        .to_account_metas(None),
+        data: vaultix_escrow::instruction::ResolveDispute { buyer_share_bps }.data(),
+    }
+}
