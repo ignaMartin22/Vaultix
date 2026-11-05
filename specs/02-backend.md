@@ -152,9 +152,9 @@ Todos llevan `order: Pubkey` y `timestamp: i64`.
 - `demo-orders.ts`: crea 2 o 3 órdenes de ejemplo para la demo.
 - El `admin` y el upgrade authority usan la keypair local de devnet; el `arbiter` es la pubkey de la Phantom del equipo (`ARBITER_PUBKEY`).
 
-### 1.9 Tests (`tests/`, TypeScript + LiteSVM)
+### 1.9 Tests (`programs/vaultix_escrow/tests/`, Rust + LiteSVM)
 
-LiteSVM corre el programa compilado en proceso y permite **fijar el reloj** (`Clock`) para probar los plazos. Para cada caso se crea un mint de prueba de 6 decimales.
+LiteSVM corre el programa compilado en proceso y permite **fijar el reloj** (`Clock`) para probar los plazos. Para cada caso se crea un mint de prueba de 6 decimales. Los helpers compartidos están en `tests/common/mod.rs` (`TestEnv`, `assert_program_error`). Se corren con `anchor build && cargo test -p vaultix_escrow`.
 
 Matriz mínima (sin todos en verde no se mergea):
 

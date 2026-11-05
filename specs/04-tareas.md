@@ -5,7 +5,7 @@ DAG de tareas para **3 agentes en paralelo**. Cada tarea es **un PR chico** (2�
 | Frente | Prefijo | Alcance |
 | --- | --- | --- |
 | Común | `C-` | Setup y contrato. Bloquea a todos |
-| Programa | `P-` | `programs/`, `tests/`, `scripts/` |
+| Programa | `P-` | `programs/` (incluye `programs/vaultix_escrow/tests/`), `scripts/` |
 | Backend | `B-` | `supabase/`, `web/app/api/`, `web/lib/server/` |
 | Web | `W-` | `web/app/` (páginas), `web/components/`, `web/lib/` (cliente) |
 | Integración | `X-` | Cruza frentes |
@@ -48,60 +48,60 @@ Formato de cada tarea: **ID · título** — depende de · archivos · aceptaci�
 
 ### P-02 · Harness de tests con LiteSVM
 - **Depende de:** P-01
-- **Archivos:** `tests/helpers/{svm.ts,mint.ts,clock.ts,accounts.ts}`, `tests/smoke.test.ts`, `package.json` (scripts).
-- **Aceptación:** helpers para levantar LiteSVM con el `.so`, crear un mint de 6 decimales, fondear ATAs, **fijar el reloj** y construir instrucciones con el IDL. Un smoke test que carga el programa.
-- **Verificación:** `anchor build && pnpm test:program`.
+- **Archivos:** `programs/vaultix_escrow/Cargo.toml` (dev-deps), `programs/vaultix_escrow/tests/common/mod.rs`, `programs/vaultix_escrow/tests/smoke.rs`.
+- **Aceptación:** helpers para levantar LiteSVM con el `.so`, crear un mint de 6 decimales, fondear ATAs, **fijar el reloj**, enviar transacciones con el fee payer y verificar errores del programa. Un smoke test que carga el programa.
+- **Verificación:** `anchor build && cargo test -p vaultix_escrow`.
 - **Commit:** `test(program): add litesvm harness`
 
 ### P-03 · `initialize_config` + `update_config`
 - **Depende de:** P-02
-- **Archivos:** `instructions/{initialize_config.rs,update_config.rs}`, `tests/config.test.ts`.
+- **Archivos:** `instructions/{initialize_config.rs,update_config.rs}`, `programs/vaultix_escrow/tests/config.rs`.
 - **Aceptación:** validaciones de 02 §1.4. Tests: init OK, segundo init falla, `fee_bps > MAX` falla, `deposit > MAX` falla, plazos ≤ 0 fallan, treasury de otro mint falla, `update_config` desde un no-admin falla.
-- **Verificación:** `pnpm test:program`.
+- **Verificación:** `cargo test -p vaultix_escrow`.
 - **Commit:** `feat(program): add config instructions`
 
 ### P-04 · `create_order` + `close_order` (en Created)
 - **Depende de:** P-03
-- **Archivos:** `instructions/{create_order.rs,close_order.rs}`, `tests/create-close.test.ts`.
+- **Archivos:** `instructions/{create_order.rs,close_order.rs}`, `programs/vaultix_escrow/tests/create_close.rs`.
 - **Aceptación:** crea `Order` + vault con payer separado del seller; guarda el snapshot de Config y `rent_payer`. Fallan: `amount = 0`, `amount > max`, mint no permitido, PDA duplicada. `close_order` en `Created` solo lo ejecuta el seller y la renta vuelve a `rent_payer`.
-- **Verificación:** `pnpm test:program`.
+- **Verificación:** `cargo test -p vaultix_escrow`.
 - **Commit:** `feat(program): add create_order and close_order`
 
 ## Día 2: resto del programa, deploy y bases de B/W
 
 ### P-05 · `pay`
 - **Depende de:** P-04
-- **Archivos:** `instructions/pay.rs`, `tests/pay.test.ts`.
+- **Archivos:** `instructions/pay.rs`, `programs/vaultix_escrow/tests/pay.rs`.
 - **Aceptación:** fija `buyer` y `paid_at`, y transfiere `amount` a la vault con `transfer_checked`. Fallan: seller pagando, segundo pago (`InvalidStatus`), token account de otro mint o de otra authority.
-- **Verificación:** `pnpm test:program`.
+- **Verificación:** `cargo test -p vaultix_escrow`.
 - **Commit:** `feat(program): add pay instruction`
 
 ### P-06 · `mark_shipped` + `refund_unshipped`
 - **Depende de:** P-05
-- **Archivos:** `instructions/{mark_shipped.rs,refund_unshipped.rs}`, `tests/ship-refund.test.ts`.
+- **Archivos:** `instructions/{mark_shipped.rs,refund_unshipped.rs}`, `programs/vaultix_escrow/tests/ship_refund.rs`.
 - **Aceptación:** `mark_shipped` con y sin hash, solo el seller, solo en `Paid`. `refund_unshipped` permissionless: falla antes de `paid_at + ship_deadline` y después devuelve el 100%.
-- **Verificación:** `pnpm test:program`.
+- **Verificación:** `cargo test -p vaultix_escrow`.
 - **Commit:** `feat(program): add shipping and unshipped refund`
 
 ### P-07 · `confirm_receipt` + `release`
 - **Depende de:** P-06
-- **Archivos:** `instructions/{confirm_receipt.rs,release.rs}`, `instructions/shared/payout.rs`, `tests/release.test.ts`.
+- **Archivos:** `instructions/{confirm_receipt.rs,release.rs}`, `instructions/shared/payout.rs`, `programs/vaultix_escrow/tests/release.rs`.
 - **Aceptación:** comisión según 02 §1.5 hacia `config.treasury`. `confirm_receipt` solo el buyer; `release` falla antes de `shipped_at + claim_window`. La vault queda en 0. Snapshot: `update_config` posterior no cambia la comisión de la orden.
-- **Verificación:** `pnpm test:program`.
+- **Verificación:** `cargo test -p vaultix_escrow`.
 - **Commit:** `feat(program): add receipt confirmation and timed release`
 
 ### P-08 · `open_dispute` + `resolve_dispute`
 - **Depende de:** P-07
-- **Archivos:** `instructions/{open_dispute.rs,resolve_dispute.rs}`, `tests/dispute.test.ts`.
+- **Archivos:** `instructions/{open_dispute.rs,resolve_dispute.rs}`, `programs/vaultix_escrow/tests/dispute.rs`.
 - **Aceptación:** depósito según `dispute_deposit_bps`; falla fuera de `claim_window` y desde un no-buyer. `resolve_dispute` solo el árbitro; `buyer_share_bps` ∈ {0, 3 333, 5 000, 10 000} con todos los saldos verificados y el destino del depósito; `> 10 000` falla.
-- **Verificación:** `pnpm test:program`.
+- **Verificación:** `cargo test -p vaultix_escrow`.
 - **Commit:** `feat(program): add dispute flow`
 
 ### P-09 · `close_order` en estados finales + matriz de transiciones inválidas
 - **Depende de:** P-08
-- **Archivos:** `instructions/close_order.rs`, `tests/close-final.test.ts`, `tests/invalid-transitions.test.ts`.
+- **Archivos:** `instructions/close_order.rs`, `programs/vaultix_escrow/tests/close_final.rs`, `programs/vaultix_escrow/tests/invalid_transitions.rs`.
 - **Aceptación:** close permissionless en `Released`/`Refunded`/`Resolved`; falla en `Paid`/`Shipped`/`Disputed`. Test tabla: cada instrucción × cada estado no permitido → `InvalidStatus`.
-- **Verificación:** `pnpm test:program` · `cargo clippy --all-targets -- -D warnings`.
+- **Verificación:** `cargo test -p vaultix_escrow` · `cargo clippy --all-targets -- -D warnings`.
 - **Commit:** `feat(program): close final orders and cover invalid transitions`
 
 ### P-10 · Deploy a devnet + seed + sync del IDL
@@ -282,7 +282,7 @@ Formato de cada tarea: **ID · título** — depende de · archivos · aceptaci�
 - **Depende de:** P-10
 - **Archivos:** `specs/program-review.md`.
 - **Aceptación:** revisión de cada instrucción contra la checklist de `AGENTS.md` (constraints, orden estado→CPI, `checked_*`, eventos). Hallazgos corregidos en PRs `fix(program): …` con tests.
-- **Verificación:** `anchor build && pnpm test:program` · clippy.
+- **Verificación:** `anchor build && cargo test -p vaultix_escrow` · clippy.
 - **Commit:** `docs(program): add security review notes`
 
 ## Días 6–7: métricas, demo y pitch

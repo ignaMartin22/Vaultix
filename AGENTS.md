@@ -41,7 +41,7 @@ Si una tarea contradice un spec, el spec manda. Si el spec está mal, corregilo 
 │           ├── errors.rs
 │           ├── events.rs
 │           └── instructions/   # una instrucción por archivo
-├── tests/                  # Tests de integración (TypeScript + LiteSVM, con control del reloj)
+├── programs/vaultix_escrow/tests/  # Tests de integración en Rust + LiteSVM (control del reloj)
 ├── scripts/                # Seed de devnet: config, mint de prueba, órdenes demo
 ├── web/                    # Next.js (App Router) + @solana/web3.js
 │   ├── app/
@@ -67,7 +67,7 @@ solana airdrop 2                 # SOL de prueba para fees y deploy
 
 # Programa
 anchor build
-pnpm test:program                # tests/ con LiteSVM (necesita anchor build antes)
+cargo test -p vaultix_escrow     # tests en Rust con LiteSVM (necesita anchor build antes)
 cargo clippy --all-targets -- -D warnings
 cargo fmt
 
@@ -86,7 +86,7 @@ pnpm test                        # Vitest en lib/
 pnpm build
 ```
 
-Antes de dar una tarea por terminada, corré `anchor build && pnpm test:program` y/o `pnpm lint && pnpm typecheck && pnpm test` según lo que hayas tocado. Si cambiaste el programa, corré `pnpm sync-idl` para regenerar el IDL y los tipos que usa `web/`.
+Antes de dar una tarea por terminada, corré `anchor build && cargo test -p vaultix_escrow` y/o `pnpm lint && pnpm typecheck && pnpm test` según lo que hayas tocado. Si cambiaste el programa, corré `pnpm sync-idl` para regenerar el IDL y los tipos que usa `web/`.
 
 ## Programa (Rust + Anchor)
 

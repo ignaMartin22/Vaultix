@@ -59,7 +59,7 @@ El estado de una orden **siempre** se lee de la cuenta `Order` (o de sus eventos
 | Capa | Tecnología | Notas |
 | --- | --- | --- |
 | Programa | Rust + Anchor (estable actual, fijada en `Anchor.toml` y `Cargo.toml`) | `anchor_spl::token_interface`, `transfer_checked` |
-| Tests del programa | TypeScript + **LiteSVM** (validador en proceso, con control del reloj) | Ver `02-backend.md` §1.9 |
+| Tests del programa | **Rust + LiteSVM** (`litesvm` + `litesvm-token` 0.15, validador en proceso con control del reloj) | Ver `02-backend.md` §1.9 |
 | Red | Solana **devnet** | Mint: USDC de devnet de Circle |
 | RPC | **Helius**, plan gratis | `NEXT_PUBLIC_SOLANA_RPC` |
 | Web | Next.js (App Router) + TypeScript estricto | Desplegado en **Vercel** |
@@ -84,10 +84,10 @@ Sigue la estructura de `AGENTS.md`, más:
 ```
 /
 ├── pnpm-workspace.yaml     # paquetes: "." (tests/scripts) y "web"
-├── package.json            # deps de tests/ y scripts/ (anchor, litesvm, spl-token)
+├── package.json            # deps de scripts/ (seed, sync-idl)
 ├── specs/                  # este kit
 ├── programs/vaultix_escrow/
-├── tests/
+├── programs/vaultix_escrow/tests/  # tests en Rust (LiteSVM)
 ├── scripts/                # seed-devnet.ts, etc.
 ├── supabase/migrations/
 └── web/
