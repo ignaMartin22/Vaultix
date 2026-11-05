@@ -40,7 +40,6 @@ export default async function Image({ params }: { params: Promise<{ orderId: str
       >
         <div style={{ flex: 1, display: "flex", padding: 56, gap: 48, alignItems: "center" }}>
           {meta?.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- rendered by ImageResponse, not the browser
             <img
               src={meta.photoUrl}
               alt=""
@@ -73,7 +72,6 @@ export default async function Image({ params }: { params: Promise<{ orderId: str
             </div>
           </div>
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element -- rendered by ImageResponse */}
         <img src={`data:image/png;base64,${band}`} alt="" width={1200} height={16} />
       </div>
     ),

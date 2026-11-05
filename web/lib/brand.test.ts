@@ -10,7 +10,7 @@ describe("BRAND", () => {
     const css = readFileSync(join(__dirname, "..", "styles", "tokens.css"), "utf8");
     for (const [key, hex] of Object.entries(BRAND)) {
       const name = BRAND_VARS[key as keyof typeof BRAND];
-      const match = new RegExp(`${name}:\s*(#[0-9A-Fa-f]{6})`).exec(css);
+      const match = new RegExp(`${name}:\\s*(#[0-9A-Fa-f]{6})`).exec(css);
       expect(match?.[1]?.toUpperCase(), name).toBe(hex.toUpperCase());
     }
   });
