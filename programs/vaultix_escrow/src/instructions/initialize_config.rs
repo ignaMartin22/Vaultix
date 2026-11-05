@@ -30,6 +30,8 @@ impl ConfigArgs {
             self.ship_deadline_secs > 0 && self.claim_window_secs > 0,
             VaultixError::InvalidDeadline
         );
+        // A zero cap would silently block every new order (01 §8: max > 0).
+        require!(self.max_order_amount > 0, VaultixError::InvalidAmount);
         Ok(())
     }
 

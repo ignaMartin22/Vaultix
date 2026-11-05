@@ -182,6 +182,25 @@ fn initialize_config_rejects_non_positive_deadlines() {
 }
 
 #[test]
+fn config_rejects_zero_max_order_amount() {
+    let mut s = setup();
+    let (mint, treasury) = (s.mint, s.treasury);
+    let zero_cap = || ConfigArgs {
+        max_order_amount: 0,
+        ..default_args()
+    };
+    let res = initialize(&mut s, mint, treasury, zero_cap());
+    assert_program_error(&res, VaultixError::InvalidAmount);
+
+    let mut s = initialized();
+    let admin = s.admin.insecure_clone();
+    let treasury = s.treasury;
+    let res = update(&mut s, &admin, treasury, zero_cap());
+    assert_program_error(&res, VaultixError::InvalidAmount);
+    assert_eq!(read_config(&s).max_order_amount, default_args().max_order_amount);
+}
+
+#[test]
 fn initialize_config_rejects_treasury_of_other_mint() {
     let mut s = setup();
     let mint = s.mint;
