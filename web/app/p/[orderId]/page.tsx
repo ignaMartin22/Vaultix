@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { OrderPage } from "@/components/order/OrderPage";
@@ -20,9 +21,18 @@ export async function generateMetadata({ params }: { params: Promise<{ orderId: 
   return { title, description, openGraph: { title, description }, twitter: { card: "summary_large_image", title, description } };
 }
 
+/** Every link is its own page: mark it request-time so its metadata isn't treated as prerenderable. */
+async function RequestTime() {
+  await connection();
+  return null;
+}
+
 export default function PaymentLinkPage() {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-6">
+      <Suspense fallback={null}>
+        <RequestTime />
+      </Suspense>
       <Suspense fallback={<p className="text-steel">Cargando…</p>}>
         <OrderPage />
       </Suspense>

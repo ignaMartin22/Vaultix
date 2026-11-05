@@ -3,7 +3,7 @@
 import { PrivyProvider, type PrivyClientConfig } from "@privy-io/react-auth";
 import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { ToastProvider } from "@/components/ui/Toast";
 import {
@@ -32,6 +32,13 @@ const privyConfig: PrivyClientConfig = {
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
+  useEffect(() => {
+    // Once, in the browser: the server would log it on every render.
+    if (!privyAppId && process.env.NODE_ENV !== "production") {
+      console.warn("NEXT_PUBLIC_PRIVY_APP_ID is not set: using a local test session.");
+    }
+  }, []);
+
   const content = (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>{children}</ToastProvider>
@@ -47,9 +54,6 @@ export function Providers({ children }: { children: ReactNode }) {
   }
 
   // Without Privy: a local test account in mock mode, signed out otherwise.
-  if (process.env.NODE_ENV !== "production") {
-    console.warn("NEXT_PUBLIC_PRIVY_APP_ID is not set: using a local test session.");
-  }
   return USE_MOCK ? (
     <MockSessionProvider>{content}</MockSessionProvider>
   ) : (

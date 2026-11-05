@@ -28,7 +28,7 @@ export async function fetchUsdcArsRate(exchange: string): Promise<UsdcArsRate> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 300, expire: 3600 });
   const url = `https://criptoya.com/api/${encodeURIComponent(exchange)}/usdc/ars/0.1`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+  const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
   if (!res.ok) throw new Error(`CriptoYa: HTTP ${res.status}`);
   return parseCriptoYa(await res.json(), exchange);
 }
