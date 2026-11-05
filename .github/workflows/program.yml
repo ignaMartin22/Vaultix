@@ -52,7 +52,12 @@ jobs:
 
       - name: Install Anchor CLI
         if: steps.tools-cache.outputs.cache-hit != 'true'
-        run: cargo install --git https://github.com/solana-foundation/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked
+        # The CLI needs a newer rustc than the program's pinned 1.89, so build it
+        # outside the repo (where rust-toolchain.toml doesn't apply) with stable.
+        working-directory: /tmp
+        run: |
+          rustup toolchain install stable --profile minimal
+          cargo +stable install --git https://github.com/solana-foundation/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked
 
       - name: Add Solana to PATH
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
