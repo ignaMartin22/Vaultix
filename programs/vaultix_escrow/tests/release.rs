@@ -208,7 +208,8 @@ fn release_only_in_shipped() {
 #[test]
 fn payout_rejects_seller_token_not_owned_by_seller() {
     let mut s = shipped();
-    let thief_token = s.env.create_ata(&s.protocol.mint, &s.buyer.pubkey());
+    let thief = s.env.funded_keypair().pubkey();
+    let thief_token = s.env.create_ata(&s.protocol.mint, &thief);
     let ix = confirm_receipt_ix(
         s.order,
         s.protocol.mint,
@@ -237,7 +238,8 @@ fn payout_rejects_seller_token_of_other_mint() {
 fn payout_rejects_fake_treasury() {
     let mut s = shipped();
     s.env.advance_time(CLAIM_WINDOW + 1);
-    let fake_treasury = s.env.create_ata(&s.protocol.mint, &s.seller.pubkey());
+    let stranger = s.env.funded_keypair().pubkey();
+    let fake_treasury = s.env.create_ata(&s.protocol.mint, &stranger);
     let ix = release_ix(s.order, s.protocol.mint, s.seller_token, fake_treasury);
     assert!(s.env.send(&[ix], &[]).is_err());
     assert_eq!(s.env.token_balance(&vault(&s)), AMOUNT);
