@@ -50,3 +50,10 @@ jobs:
 
       - name: Test
         run: pnpm --filter web test
+
+      # Catches what typecheck can't (route config, prerendering). Mock mode, no secrets.
+      - name: Build
+        run: pnpm --filter web build
+        env:
+          NEXT_PUBLIC_USE_MOCK: "true"
+          NEXT_TELEMETRY_DISABLED: "1"

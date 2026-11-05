@@ -2,8 +2,6 @@ import { requireUser } from "@/lib/server/auth";
 import { ApiError, withErrors } from "@/lib/server/errors";
 import { sponsorTransaction } from "@/lib/server/fee-payer";
 
-export const dynamic = "force-dynamic";
-
 /**
  * Body: `{ transaction: <base64 legacy tx, partially signed by the user> }`.
  * Validates it (01 §6), co-signs with the fee payer, sends it and returns
