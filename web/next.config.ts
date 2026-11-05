@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
+    // @anchor-lang/core's browser bundle requires "fs" for NodeWallet, unused in the web.
+    resolveAlias: {
+      fs: { browser: "./lib/shims/empty.ts" },
+    },
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
