@@ -1,0 +1,14 @@
+/* Brand tokens (specs/05-design.md §3). The only place hex values live. */
+:root {
+  --vault-black: #08090B;
+  --graphite: #16191F;
+  --steel: #8B93A1;
+  --bone: #F2F1EC;
+  --deep-teal: #0F3A3C;
+  --ion-blue: #2F5BFF;
+  --ultra-violet: #8B3DFF;
+  --plasma: #FF3E8A;
+  --ember: #FF6A1A;
+  --released: #3DDC97;
+  --spectral: linear-gradient(90deg, #0F3A3C 0%, #2F5BFF 28%, #8B3DFF 52%, #FF3E8A 76%, #FF6A1A 100%);
+}

@@ -1,26 +1,49 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Tailwind v4 exposes the brand tokens as utilities (bg-vault-black, text-bone…). */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-vault-black: var(--vault-black);
+  --color-graphite: var(--graphite);
+  --color-steel: var(--steel);
+  --color-bone: var(--bone);
+  --color-deep-teal: var(--deep-teal);
+  --color-ion-blue: var(--ion-blue);
+  --color-ultra-violet: var(--ultra-violet);
+  --color-plasma: var(--plasma);
+  --color-ember: var(--ember);
+  --color-released: var(--released);
+
+  --background-image-spectral: var(--spectral);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Mobile type scale at 375 px (05 §5): size / line-height. */
+  --text-display: 2.5rem;
+  --text-display--line-height: 2.75rem;
+  --text-display--letter-spacing: -0.04em;
+  --text-title: 1.5rem;
+  --text-title--line-height: 1.875rem;
+  --text-subtitle: 1.125rem;
+  --text-subtitle--line-height: 1.5rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0.04em;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--vault-black);
+  color: var(--bone);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ion-blue);
+  outline-offset: 2px;
 }
