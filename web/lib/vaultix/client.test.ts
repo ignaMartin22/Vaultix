@@ -1,5 +1,6 @@
 // The real client against a fake cluster: every sponsored builder must produce
 // a transaction the sponsor (B-03) accepts, with the accounts the program expects.
+import { getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair, PublicKey, type Connection } from "@solana/web3.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -89,6 +90,13 @@ function keysOf(tx: { instructions: { programId: PublicKey; keys: { pubkey: Publ
   const ix = tx.instructions.find((i) => i.programId.equals(programId))!;
   return ix.keys.map((k) => k.pubkey.toBase58());
 }
+
+describe("token account addresses", () => {
+  it("match spl-token, for wallets and for PDAs (the vault)", () => {
+    expect(associatedTokenAddress(buyer.publicKey, mint).equals(getAssociatedTokenAddressSync(mint, buyer.publicKey))).toBe(true);
+    expect(associatedTokenAddress(order, mint).equals(getAssociatedTokenAddressSync(mint, order, true))).toBe(true);
+  });
+});
 
 describe("AnchorVaultixClient reads", () => {
   it("decodes config and orders", async () => {

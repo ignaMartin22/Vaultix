@@ -35,7 +35,8 @@ class Reader {
   }
   bytes32(): Uint8Array {
     const at = this.take(32);
-    return this.bytes.slice(at, at + 32);
+    // Copy into a plain Uint8Array: RPC data comes as a Node/browser Buffer.
+    return new Uint8Array(this.bytes.subarray(at, at + 32));
   }
   pubkey(): PublicKey {
     return new PublicKey(this.bytes32());
