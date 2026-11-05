@@ -37,6 +37,7 @@ import {
 import { decodeConfigAccount, decodeOrderAccount, ORDER_DISCRIMINATOR, ORDER_OFFSETS } from "./decode";
 import idl from "./idl.json";
 import { createMockVaultixClient, type MockVaultixClient } from "./mock";
+import { USE_MOCK } from "./mode";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, associatedTokenAddress, configPda, orderPda, PROGRAM_ID } from "./pdas";
 import type { VaultixEscrow } from "./vaultix_escrow";
 
@@ -317,7 +318,8 @@ export class AnchorVaultixClient implements VaultixClient {
 // Factory
 // ---------------------------------------------------------------------------
 
-export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== "false";
+export { USE_MOCK };
+
 
 export function solanaRpcUrl(): string {
   return process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl("devnet");

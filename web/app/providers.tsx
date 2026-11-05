@@ -6,6 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
 import { ToastProvider } from "@/components/ui/Toast";
+import {
+  MockSessionProvider,
+  PrivySessionProvider,
+  UnconfiguredSessionProvider,
+} from "@/lib/auth/session";
+import { USE_MOCK } from "@/lib/vaultix/mode";
 
 const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? "";
 
@@ -32,16 +38,21 @@ export function Providers({ children }: { children: ReactNode }) {
     </QueryClientProvider>
   );
 
-  if (!privyAppId) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("NEXT_PUBLIC_PRIVY_APP_ID is not set: rendering without Privy.");
-    }
-    return content;
+  if (privyAppId) {
+    return (
+      <PrivyProvider appId={privyAppId} config={privyConfig}>
+        <PrivySessionProvider>{content}</PrivySessionProvider>
+      </PrivyProvider>
+    );
   }
 
-  return (
-    <PrivyProvider appId={privyAppId} config={privyConfig}>
-      {content}
-    </PrivyProvider>
+  // Without Privy: a local test account in mock mode, signed out otherwise.
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("NEXT_PUBLIC_PRIVY_APP_ID is not set: using a local test session.");
+  }
+  return USE_MOCK ? (
+    <MockSessionProvider>{content}</MockSessionProvider>
+  ) : (
+    <UnconfiguredSessionProvider>{content}</UnconfiguredSessionProvider>
   );
 }

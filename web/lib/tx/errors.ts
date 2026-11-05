@@ -58,6 +58,12 @@ export function isUserRejection(err: unknown): boolean {
   return /user rejected|rejected the request|user denied|cancel+ed|closed the modal/i.test(errorText(err));
 }
 
+/** `create_order` hit an existing `order_id`: the caller retries with a new one (01 §5.2). */
+export function isOrderIdCollision(err: unknown): boolean {
+  if (isVaultixError(err, "AccountAlreadyInUse")) return true;
+  return programErrorName(errorText(err)) === "AccountAlreadyInUse";
+}
+
 export function txErrorMessage(err: unknown): string {
   if (isUserRejection(err)) return "Cancelaste la operación. No se movió nada.";
   if (isVaultixError(err)) return PROGRAM_MESSAGES[err.code] ?? GENERIC;

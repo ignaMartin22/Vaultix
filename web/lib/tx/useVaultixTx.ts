@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * React side of the transaction lifecycle (specs/03-frontend.md §4): Privy signs,
- * the sponsor co-signs and sends (01 §5.1), we confirm at `confirmed`, retry on
- * an expired blockhash and invalidate the order and balance queries.
+ * React side of the transaction lifecycle (specs/03-frontend.md §4): the user
+ * signs (Privy, or the local test account in mock mode), the sponsor co-signs
+ * and sends (01 §5.1), we confirm at `confirmed`, retry on an expired
+ * blockhash and invalidate the order and balance queries.
  */
-import { usePrivy } from "@privy-io/react-auth";
-import { useSignTransaction, useWallets } from "@privy-io/react-auth/solana";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
-import { Connection, Transaction, type PublicKey } from "@solana/web3.js";
+import { Connection, type PublicKey, type Transaction } from "@solana/web3.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useToast } from "@/components/ui/Toast";
 
 import { sponsorTransaction } from "../api";
+import { useSession } from "../auth/session";
 import { getVaultixClient, isMockClient, solanaRpcUrl } from "../vaultix/client";
 import type { VaultixClient } from "../vaultix/contract";
 import { txErrorMessage } from "./errors";
@@ -32,13 +32,17 @@ export interface UseVaultixTxOptions {
   /** The account that signs (seller, buyer, arbiter); null for permissionless. */
   signer: PublicKey | null;
   /** Toast after confirming, e.g. "Listo: tu plata está en bóveda." */
-  successMessage: string;
+  successMessage?: string;
   /** Queries to refresh after confirming (order, balances…). */
   invalidate?: QueryKey[];
   /** `false` for the arbiter, who pays and sends on their own (03 §4). */
   sponsored?: boolean;
+  /** `false` when the caller handles failures itself (e.g. retries). */
+  toastErrors?: boolean;
   onConfirmed?: (signature: string) => void;
 }
+
+export type TxOutcome = { ok: true; signature: string } | { ok: false; error: unknown; message: string };
 
 const BUSY: readonly TxPhase[] = ["signing", "sending", "confirming"];
 
@@ -49,9 +53,7 @@ function rpc(): Connection {
 }
 
 export function useVaultixTx(options: UseVaultixTxOptions) {
-  const { getAccessToken } = usePrivy();
-  const { wallets } = useWallets();
-  const { signTransaction } = useSignTransaction();
+  const session = useSession();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -63,39 +65,27 @@ export function useVaultixTx(options: UseVaultixTxOptions) {
     latest.current = options;
   });
 
-  const run = useCallback(async (): Promise<string | null> => {
+  const run = useCallback(async (): Promise<TxOutcome> => {
     const opts = latest.current;
     const client = getVaultixClient();
     setError(null);
 
-    const wallet = opts.signer
-      ? wallets.find((w) => w.address === opts.signer!.toBase58())
-      : undefined;
-
     const steps: TxSteps = isMockClient(client)
       ? {
           build: () => opts.build(client),
-          sign: async (tx) => tx,
-          send: async (tx) => client.applyTransaction(tx, { signers: opts.signer ? [opts.signer] : [] }).signature,
+          sign: async (tx) => (needsUserSignature(tx) ? session.signTransaction(tx) : tx),
+          send: async (tx) => client.applyTransaction(tx).signature,
           confirm: async () => {},
         }
       : {
           build: () => opts.build(client),
-          async sign(tx) {
-            if (!needsUserSignature(tx)) return tx;
-            if (!wallet) throw new Error("No encontramos tu cuenta para firmar. Volvé a entrar.");
-            const { signedTransaction } = await signTransaction({
-              transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
-              wallet,
-            });
-            return Transaction.from(signedTransaction);
-          },
+          sign: async (tx) => (needsUserSignature(tx) ? session.signTransaction(tx) : tx),
           async send(tx) {
             if (opts.sponsored === false) {
               return rpc().sendRawTransaction(tx.serialize(), { preflightCommitment: "confirmed" });
             }
             const wire = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64");
-            return (await sponsorTransaction(wire, getAccessToken)).signature;
+            return (await sponsorTransaction(wire, session.getAccessToken)).signature;
           },
           async confirm(signature, tx) {
             const { value } = await rpc().confirmTransaction(
@@ -117,16 +107,16 @@ export function useVaultixTx(options: UseVaultixTxOptions) {
           queryClient.invalidateQueries({ queryKey }),
         ),
       );
-      toast.show(opts.successMessage, "success");
+      if (opts.successMessage) toast.show(opts.successMessage, "success");
       opts.onConfirmed?.(signature);
-      return signature;
+      return { ok: true, signature };
     } catch (err) {
       const message = txErrorMessage(err);
       setError(message);
-      toast.show(message, "error");
-      return null;
+      if (opts.toastErrors !== false) toast.show(message, "error");
+      return { ok: false, error: err, message };
     }
-  }, [getAccessToken, queryClient, signTransaction, toast, wallets]);
+  }, [queryClient, session, toast]);
 
   const reset = useCallback(() => {
     setPhase("idle");
