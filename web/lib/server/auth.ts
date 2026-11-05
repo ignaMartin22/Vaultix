@@ -117,7 +117,10 @@ function defaultDeps(): AuthDeps {
 
 let defaultRequireUser: ReturnType<typeof createRequireUser> | undefined;
 
-export function requireUser(req: Request): Promise<AuthUser> {
+export async function requireUser(req: Request): Promise<AuthUser> {
+  // Touch the request before building clients: it marks the route as
+  // request-time for prerendering and rejects anonymous calls cheaply.
+  bearerToken(req);
   defaultRequireUser ??= createRequireUser(defaultDeps());
   return defaultRequireUser(req);
 }
