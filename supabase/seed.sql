@@ -1,0 +1,2 @@
+-- Local seed data. Intentionally empty: no fake personal data.
+-- Buckets and policies are created by the migrations.
