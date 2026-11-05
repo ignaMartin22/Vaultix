@@ -267,6 +267,7 @@ Siguen abiertas:
 - [ ] SVG maestro del logo: falta en el repo.
 - [ ] `initialize_config` lo puede llamar cualquiera la primera vez y quedar como admin. En devnet alcanza con correr el seed enseguida del deploy; antes de mainnet, ¿restringirlo a la upgrade authority del programa?
 - [ ] Árbitro en devnet: por ahora es la keypair del admin (`9NMAvdKGJibTUFW4mWRfVd4sZRpLNo3fQCQMqdrXXV89`), provisorio. Falta la pubkey de la Phantom del equipo para pasarla con `update_config`.
+- [ ] Una disputa no tiene plazo: si el árbitro nunca resuelve (o se pierde su clave), la plata queda trabada en `Disputed`. ¿Agregar un plazo de resolución con un resultado por defecto (50/50 o reembolso)? Mientras tanto, la clave del admin es la única salida (`update_config` para cambiar el árbitro).
 
 ---
 

@@ -54,6 +54,7 @@ web/
 - **Montos:** siempre `bigint` en unidades mínimas. `lib/amounts.ts` parsea el input del usuario ("120,50" o "120.50") a bigint sin pasar por float. Se muestra `USDC 120.50` en mono y abajo `≈ $ 145.300` (ARS de referencia, sin decimales). Si la cotización falla, se oculta la línea en pesos.
 - **Banner "Modo prueba (devnet)":** fijo arriba, visible en todas las páginas mientras `NEXT_PUBLIC_SOLANA_CLUSTER !== "mainnet-beta"`.
 - **Copy:** voseo, primero el dato. **Prohibido** en la UI: wallet, gas, fee de red, smart contract, programa, seed phrase, blockchain. Se dice "tu cuenta", "la bóveda", "pago protegido". Mapa completo en `05-design.md` §6.
+- **Reglas claras, sin complejidad:** el público no sabe nada de cripto y la web tiene que atraerlo, no espantarlo. Antes de pagar y antes de crear un link, las dos partes ven el mismo resumen (`RulesSummary`) en 3 o 4 líneas cortas, con **fechas y montos concretos** en lugar de porcentajes o segundos: "Si no lo despacha antes del 12/11, te devolvemos todo", "Vas a recibir USDC 98.50". El detalle (depósito de disputa, árbitro, cierre) va detrás de un "¿Cómo funciona?" desplegable. Se pide solo el dato necesario en cada paso, sin pasos de más, y cada estado dice qué pasó y qué sigue.
 - **Sin cripto visible por defecto:** las direcciones se muestran cortas (`8F3a…c41E`) y solo donde aportan (cargar saldo, árbitro).
 - **Accesibilidad mínima:** contraste AA, objetivos táctiles ≥ 44 px, foco visible.
 
