@@ -331,7 +331,7 @@ Disparadas por el webhook **solo cuando la fila de `order_events` es nueva** (id
 | `OrderShipped` | buyer | "El vendedor despachó {producto}." |
 | `OrderReleased` | seller | "Cobraste USDC {monto} por {producto}." |
 | `OrderRefunded` | buyer | "Te devolvimos USDC {monto}." |
-| `DisputeOpened` | seller + árbitro | "Abrieron un reclamo por {producto}. Subí tu evidencia." |
+| `DisputeOpened` | seller + árbitro (`ARBITER_EMAIL`) | Seller: "Abrieron un reclamo por {producto}. Subí tu evidencia." · Árbitro: "Abrieron un reclamo por {producto}." |
 | `DisputeResolved` | buyer + seller | "Se resolvió el reclamo por {producto}." |
 
 Si falla el envío de un mail, se loguea y no se reintenta (MVP).

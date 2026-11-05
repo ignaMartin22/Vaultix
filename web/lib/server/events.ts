@@ -13,6 +13,7 @@ import { PublicKey } from "@solana/web3.js";
 import idl from "../vaultix/idl.json";
 import { PROGRAM_ID } from "../vaultix/pdas";
 import { ApiError } from "./errors";
+import { defaultNotifier } from "./mail";
 import { supabaseAdmin } from "./supabase";
 
 export const EVENT_TYPES = [
@@ -149,6 +150,7 @@ let handler: ReturnType<typeof createWebhookHandler> | undefined;
 export async function handleHeliusWebhook(body: unknown) {
   if (!handler) {
     const db = supabaseAdmin();
+    const notifier = defaultNotifier();
     handler = createWebhookHandler({
       async insertNew(rows) {
         // ON CONFLICT DO NOTHING ... RETURNING: only rows that weren't there come back.
@@ -159,6 +161,13 @@ export async function handleHeliusWebhook(body: unknown) {
         if (error) throw new Error(`order_events insert failed: ${error.message}`, { cause: error });
         return (data ?? []) as OrderEventRow[];
       },
+      // B-07: one mail per new event (02 §4).
+      onNewEvents: notifier
+        ? async (rows) => {
+            const { sent, failed } = await notifier(rows);
+            if (failed > 0) console.warn(`notifications: ${sent} sent, ${failed} failed`);
+          }
+        : undefined,
     });
   }
   return handler(body);
