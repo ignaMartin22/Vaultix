@@ -5,13 +5,13 @@
  * `order_id` is a random integer below 2^53: still a valid u64, and it stays
  * exact through PostgREST/JSON numbers (which `numeric` columns come back as).
  */
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
+import { PublicKey } from "@solana/web3.js";
 
 import { listingHashHex, toHex } from "../listing-hash";
 import type { OrderAccount } from "../vaultix/contract";
-import { decodeOrderAccount } from "../vaultix/decode";
-import { orderPda, PROGRAM_ID } from "../vaultix/pdas";
+import { orderPda } from "../vaultix/pdas";
 import type { AuthUser } from "./auth";
+import { readOrder } from "./chain";
 import { ApiError } from "./errors";
 import { supabaseAdmin } from "./supabase";
 
@@ -232,7 +232,6 @@ const LISTING_COLUMNS =
 
 function defaultDeps(): ListingDeps {
   const db = supabaseAdmin();
-  const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl("devnet"), "confirmed");
   const fail = (what: string, error: { message: string }) => {
     throw new Error(`${what}: ${error.message}`, { cause: error });
   };
@@ -291,11 +290,7 @@ function defaultDeps(): ListingDeps {
       );
     },
     publicUrl: (path) => db.storage.from(PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl,
-    async readOrder(address) {
-      const info = await connection.getAccountInfo(address, "confirmed");
-      if (!info || !info.owner.equals(PROGRAM_ID)) return null;
-      return decodeOrderAccount(info.data);
-    },
+    readOrder,
   };
 }
 
