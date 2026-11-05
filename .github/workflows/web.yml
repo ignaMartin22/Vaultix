@@ -39,9 +39,12 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # Reflection + syntax check of the hero shader (no GPU in CI, so no device validation).
+      # Validates the hero shader against a real WebGPU device: CI has no GPU,
+      # so vgpu's portable CPU renderer stands in for one.
       - name: Shader check
-        run: pnpm --filter web exec vgpu check components/spectral.wgsl
+        run: |
+          pnpm --filter web exec vgpu install-software-renderer
+          pnpm --filter web exec vgpu check components/spectral.wgsl --require-validation
 
       - name: Scripts typecheck
         run: pnpm scripts:typecheck
