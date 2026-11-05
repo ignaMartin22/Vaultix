@@ -101,7 +101,7 @@ describe("crank run", () => {
   });
 
   it("builds the right instruction for each action", async () => {
-    const build = vi.fn(async () => new Transaction());
+    const build = vi.fn<CrankDeps["build"]>(async () => new Transaction());
     const paid = order("Paid", { paidAt: 0n });
     await createCrank(deps({ Paid: [paid], Resolved: [order("Resolved")] }, { build }))();
     expect(build.mock.calls.map((c) => c[0])).toEqual(["refund_unshipped", "close_order"]);
