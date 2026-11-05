@@ -36,9 +36,11 @@ jobs:
         with:
           rustflags: ""
 
-      - name: Cache Solana CLI and Anchor CLI
+      # Restore and save are split so the tools cache is kept even when a later
+      # step (tests, clippy) fails.
+      - name: Restore Solana CLI and Anchor CLI
         id: tools-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.local/share/solana
@@ -71,6 +73,17 @@ jobs:
       # The program keypair is never committed, so CI builds with a throwaway one.
       - name: Build program
         run: anchor build --ignore-keys
+
+      # After the first build, ~/.cache/solana also holds the SBF platform tools.
+      - name: Save Solana CLI and Anchor CLI
+        if: steps.tools-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+            ~/.cargo/bin/anchor
+          key: tools-solana-${{ env.SOLANA_VERSION }}-anchor-${{ env.ANCHOR_VERSION }}
 
       - name: Test
         run: cargo test -p vaultix_escrow
