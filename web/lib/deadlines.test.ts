@@ -60,3 +60,14 @@ describe("formatRemaining", () => {
     expect(formatRemaining(59n)).toBe("menos de 1 min");
   });
 });
+
+describe("formatDeadline", () => {
+  it("shows weekday, day/month and time in Argentina", async () => {
+    const { formatDeadline } = await import("./deadlines");
+    // 2026-11-12 17:30 UTC = 14:30 in Buenos Aires.
+    const text = formatDeadline(BigInt(Date.UTC(2026, 10, 12, 17, 30) / 1000));
+    expect(text).toMatch(/jueves/);
+    expect(text).toMatch(/12\/11/);
+    expect(text).toMatch(/14:30/);
+  });
+});

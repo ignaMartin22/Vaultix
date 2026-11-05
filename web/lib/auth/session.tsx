@@ -26,6 +26,10 @@ export interface Session {
   signTransaction(tx: Transaction): Promise<Transaction>;
   /** True for the local test session (no Privy). */
   mock: boolean;
+  /** Mock only: swaps between two test accounts, to play seller and buyer in one tab. */
+  switchTestAccount?: () => void;
+  /** Mock only: which test account is active (0 or 1). */
+  testAccount?: number;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -67,38 +71,42 @@ export function PrivySessionProvider({ children }: { children: ReactNode }) {
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
 
-const MOCK_KEY = "vaultix:mock-account";
+const MOCK_KEY = "vaultix:mock-accounts";
 
-function loadMockKeypair(): Keypair {
+/** Two throwaway test accounts per tab (seller and buyer), kept across reloads of the tab. */
+function loadMockKeypairs(): [Keypair, Keypair] {
   try {
     const stored = window.sessionStorage.getItem(MOCK_KEY);
-    if (stored) return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(stored) as number[]));
-    const fresh = Keypair.generate();
-    window.sessionStorage.setItem(MOCK_KEY, JSON.stringify([...fresh.secretKey]));
+    if (stored) {
+      const [a, b] = JSON.parse(stored) as number[][];
+      return [Keypair.fromSecretKey(Uint8Array.from(a)), Keypair.fromSecretKey(Uint8Array.from(b))];
+    }
+    const fresh: [Keypair, Keypair] = [Keypair.generate(), Keypair.generate()];
+    window.sessionStorage.setItem(MOCK_KEY, JSON.stringify(fresh.map((k) => [...k.secretKey])));
     return fresh;
   } catch {
-    return Keypair.generate();
+    return [Keypair.generate(), Keypair.generate()];
   }
 }
 
-/** Mock mode only: a throwaway account per browser tab. Never holds real funds. */
+/** Mock mode only: local test accounts. Never hold real funds. */
 export function MockSessionProvider({ children }: { children: ReactNode }) {
-  const [keypair, setKeypair] = useState<Keypair | null>(null);
+  const [accounts, setAccounts] = useState<[Keypair, Keypair] | null>(null);
+  const [active, setActive] = useState(0);
+  const keypair = accounts ? accounts[active] : null;
 
-  const login = useCallback(() => setKeypair(loadMockKeypair()), []);
+  const login = useCallback(() => setAccounts(loadMockKeypairs()), []);
+  const switchTestAccount = useCallback(() => {
+    setAccounts((current) => current ?? loadMockKeypairs());
+    setActive((i) => 1 - i);
+  }, []);
   const session = useMemo<Session>(
     () => ({
       ready: true,
       authenticated: keypair !== null,
       pubkey: keypair?.publicKey ?? null,
       login,
-      // Logging out forgets the test account: the next login is a different person.
-      logout: async () => {
-        try {
-          window.sessionStorage.removeItem(MOCK_KEY);
-        } catch {}
-        setKeypair(null);
-      },
+      logout: async () => setAccounts(null),
       getAccessToken: async () => null,
       async signTransaction(tx) {
         if (!keypair) throw new Error("No hay una sesión abierta.");
@@ -106,8 +114,10 @@ export function MockSessionProvider({ children }: { children: ReactNode }) {
         return tx;
       },
       mock: true,
+      switchTestAccount,
+      testAccount: active,
     }),
-    [keypair, login],
+    [keypair, login, switchTestAccount, active],
   );
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;

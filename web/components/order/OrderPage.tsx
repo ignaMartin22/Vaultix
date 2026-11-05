@@ -10,14 +10,53 @@ import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { useSession } from "@/lib/auth/session";
 import { getListingByOrder } from "@/lib/listings-client";
-import { statusDisplay } from "@/lib/order-status";
 import { whatsappUrl } from "@/lib/sell";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
-import { getVaultixClient } from "@/lib/vaultix/client";
+import { getVaultixClient, isMockClient } from "@/lib/vaultix/client";
+import { FINAL_STATUSES, type OrderAccount } from "@/lib/vaultix/contract";
 
+import { BuyerActions } from "./BuyerActions";
 import { OrderHeader } from "./OrderHeader";
+import { OutcomeCard, type Resolution } from "./OutcomeCard";
 import { PayFlow } from "./PayFlow";
 import { Rules } from "./Rules";
+import { SellerActions } from "./SellerActions";
+
+/** The dispute split, from the DisputeResolved event (only the mock has events client-side for now). */
+function resolutionOf(orderPda: string): Resolution | null {
+  const client = getVaultixClient();
+  if (!isMockClient(client)) return null;
+  const event = client.events.find((e) => e.name === "DisputeResolved" && e.order.toBase58() === orderPda);
+  return event && event.name === "DisputeResolved"
+    ? { buyerAmount: event.buyerAmount, sellerAmount: event.sellerAmount, fee: event.fee }
+    : null;
+}
+
+function AfterPayment({
+  orderPda,
+  order,
+  isSeller,
+  isBuyer,
+}: {
+  orderPda: string;
+  order: OrderAccount;
+  isSeller: boolean;
+  isBuyer: boolean;
+}) {
+  if (FINAL_STATUSES.includes(order.status)) {
+    return (
+      <OutcomeCard
+        order={order}
+        role={isSeller ? "seller" : isBuyer ? "buyer" : "other"}
+        resolution={order.status === "Resolved" ? resolutionOf(orderPda) : null}
+      />
+    );
+  }
+  if (isSeller) return <SellerActions orderPda={orderPda} order={order} />;
+  if (isBuyer) return <BuyerActions orderPda={orderPda} order={order} />;
+  // Third parties see only the status and the seal (03 §5.3).
+  return <Card className="text-body text-bone">Este link ya fue pagado. Si querés uno igual, pedíselo al vendedor.</Card>;
+}
 
 const NOT_FOUND = "Este link no existe o ya no está disponible.";
 
@@ -101,26 +140,21 @@ export function OrderPage() {
                 invalidate={[vaultixKeys.order(orderId)]}
                 build={(client) => client.buildCloseOrderTx({ order: new PublicKey(orderId), authority: session.pubkey! })}
               />
-              {session.mock ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => void session.logout().then(() => session.login())}
-                >
-                  Modo prueba: entrá como comprador con otra cuenta
-                </Button>
-              ) : null}
             </div>
           ) : (
             <PayFlow orderPda={orderId} order={o} />
           )}
         </>
       ) : (
-        <Card className="text-body text-bone">
-          {isBuyer || isSeller
-            ? `Estado: ${statusDisplay(o.status).label}.`
-            : "Este link ya fue pagado. Si querés uno igual, pedíselo al vendedor."}
-        </Card>
+        <AfterPayment orderPda={orderId} order={o} isSeller={isSeller} isBuyer={isBuyer} />
       )}
+
+      {session.switchTestAccount ? (
+        <Button variant="secondary" onClick={session.switchTestAccount}>
+          Modo prueba: sos la cuenta {(session.testAccount ?? 0) + 1}
+          {isSeller ? " (vendedor)" : isBuyer ? " (comprador)" : ""}. Cambiá a la otra
+        </Button>
+      ) : null}
     </div>
   );
 }

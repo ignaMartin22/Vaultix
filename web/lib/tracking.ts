@@ -25,3 +25,10 @@ export async function trackingHash(carrier: Carrier, number: string): Promise<Ui
   const text = `${carrier}:${normalizeTrackingNumber(number)}`;
   return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
 }
+
+/** Carrier sites, so the buyer can follow the package (generic home pages, no deep links). */
+export const CARRIER_SITES: Partial<Record<Carrier, string>> = {
+  andreani: "https://www.andreani.com",
+  oca: "https://www.oca.com.ar",
+  correo_argentino: "https://www.correoargentino.com.ar",
+};

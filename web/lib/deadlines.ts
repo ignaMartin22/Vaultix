@@ -66,3 +66,22 @@ export function formatRemaining(secs: bigint): string {
   if (minutes > 0n) return `${minutes} min`;
   return "menos de 1 min";
 }
+
+const DEADLINE_FORMAT = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/Argentina/Buenos_Aires",
+});
+
+/** "miércoles 12/11, 14:30" (Argentina time): deadlines are read as dates, not seconds. */
+export function formatDeadline(at: bigint): string {
+  // Assembled from parts: ICU builds disagree on the date separator ("12/11" vs "12-11").
+  const parts = Object.fromEntries(
+    DEADLINE_FORMAT.formatToParts(new Date(Number(at) * 1000)).map((p) => [p.type, p.value]),
+  );
+  return `${parts.weekday} ${parts.day}/${parts.month}, ${parts.hour}:${parts.minute}`;
+}

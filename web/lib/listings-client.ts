@@ -187,3 +187,8 @@ export async function saveShippingAddress(
   }
   await apiFetch("/api/shipping", { method: "POST", getAccessToken, body: { orderPda, ...address } });
 }
+
+/** Mock mode only: the address saved for an order in this tab (what the seller sees). */
+export function mockShippingAddress(orderPda: string): ShippingAddress | null {
+  return mockShipping.get(orderPda) ?? null;
+}
