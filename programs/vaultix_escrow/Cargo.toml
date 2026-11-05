@@ -22,5 +22,15 @@ custom-panic = []
 [dependencies]
 anchor-lang = "1.2.2"
 
+[dev-dependencies]
+# Versions match LiteSVM 0.15 (Rust 1.89, pinned by Anchor 1.2.2).
+litesvm = "0.15.0"
+litesvm-token = "0.15.2"
+solana-clock = "3"
+solana-keypair = "3"
+solana-message = "4"
+solana-signer = "3"
+solana-transaction = "4"
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
