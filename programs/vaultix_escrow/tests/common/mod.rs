@@ -111,6 +111,8 @@ impl TestEnv {
 
     /// Sends `ixs` with `self.payer` as fee payer plus the extra `signers`.
     /// Expires the blockhash first so identical transactions don't collide.
+    // TxResult is LiteSVM's own result type; boxing it would only add noise in tests.
+    #[allow(clippy::result_large_err)]
     pub fn send(&mut self, ixs: &[Instruction], signers: &[&Keypair]) -> TxResult {
         self.svm.expire_blockhash();
         let blockhash = self.svm.latest_blockhash();
