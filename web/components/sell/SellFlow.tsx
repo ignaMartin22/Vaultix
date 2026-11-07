@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { ErrorNote, Loading, PageIntro } from "@/components/ui/Feedback";
 import { useToast } from "@/components/ui/Toast";
 import { ApiClientError } from "@/lib/api";
 import { useSession } from "@/lib/auth/session";
@@ -46,6 +46,9 @@ export function SellFlow() {
   const [values, setValues] = useState<SellFormValues & { priceText: string }>();
   const [done, setDone] = useState<{ link: string; title: string; amount: bigint }>();
   const draft = useRef<Draft | null>(null);
+  // The cover, for the shared-link preview once it's done.
+  const cover = useMemo(() => (values?.photos[0] ? URL.createObjectURL(values.photos[0]) : null), [values]);
+  useEffect(() => () => (cover ? URL.revokeObjectURL(cover) : undefined), [cover]);
 
   const config = useQuery({
     queryKey: vaultixKeys.config,
@@ -120,27 +123,29 @@ export function SellFlow() {
   }
 
   if (!session.ready || config.isPending) {
-    return <p className="text-steel">Cargando…</p>;
+    return <Loading />;
   }
 
   if (!session.authenticated) {
     return (
-      <div className="flex flex-col gap-4">
-        <h1 className="text-title font-semibold">Creá tu link de pago</h1>
-        <p className="text-steel">Entrá con tu email o Google. Tu comprador paga y la plata queda en bóveda hasta que le llega.</p>
-        <Button onClick={session.login}>Entrar</Button>
+      <div className="flex max-w-xl flex-col gap-8">
+        <PageIntro eyebrow="Vender" title="Creá tu link de pago">
+          Tu comprador paga y la plata queda en bóveda hasta que le llega. Para empezar, entrá con tu email o Google.
+        </PageIntro>
+        <Button onClick={session.login}>Entrá para crear tu link</Button>
       </div>
     );
   }
 
   if (!config.data) {
-    return <p className="text-plasma">No pudimos cargar las reglas de la bóveda. Probá de nuevo en un rato.</p>;
+    return <ErrorNote>No pudimos cargar las reglas de la bóveda. Probá de nuevo en un rato.</ErrorNote>;
   }
 
   if (step === "done" && done) {
     return (
       <SellSuccess
         {...done}
+        photoUrl={cover}
         onCreateAnother={() => {
           draft.current = null;
           setValues(undefined);
@@ -164,17 +169,17 @@ export function SellFlow() {
             : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-title font-semibold">Creá tu link de pago</h1>
-        <p className="text-steel">Tu comprador paga y la plata queda en bóveda hasta que le llega.</p>
-      </div>
-      {progress ? (
-        <Card role="status" aria-live="polite" className="text-bone">
-          {progress}
-        </Card>
-      ) : null}
-      <SellForm config={config.data} initial={values} busy={step !== "form"} onSubmit={(v, p) => void create(v, p)} />
+    <div className="flex flex-col gap-12">
+      <PageIntro eyebrow="Vender" title="Creá tu link de pago">
+        Tu comprador paga y la plata queda en bóveda hasta que le llega.
+      </PageIntro>
+      <SellForm
+        config={config.data}
+        initial={values}
+        busy={step !== "form"}
+        progress={progress}
+        onSubmit={(v, p) => void create(v, p)}
+      />
     </div>
   );
 }

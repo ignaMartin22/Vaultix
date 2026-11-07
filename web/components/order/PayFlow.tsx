@@ -4,7 +4,6 @@ import { PublicKey } from "@solana/web3.js";
 import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { formatUsdc } from "@/lib/amounts";
 import { ApiClientError } from "@/lib/api";
@@ -80,12 +79,15 @@ export function PayFlow({ orderPda, order }: { orderPda: string; order: OrderAcc
   return (
     <div className="flex flex-col gap-4">
       {step === "start" ? (
-        <Button onClick={() => void start()} disabled={checking}>
-          {checking ? "Revisando tu saldo…" : `Pagá ${formatUsdc(order.amount)}`}
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button fullWidth onClick={() => void start()} disabled={checking}>
+            {checking ? "Revisando tu saldo…" : `Pagá ${formatUsdc(order.amount)}`}
+          </Button>
+          <p className="text-center text-label text-steel">Tu plata queda en bóveda hasta que confirmes que llegó.</p>
+        </div>
       ) : (
-        <Card className="flex flex-col gap-4">
-          <h2 className="text-subtitle font-semibold">¿Dónde te lo mandan?</h2>
+        <section className="flex flex-col gap-5 rounded-2xl border border-steel/15 bg-graphite p-5 animate-[vault-fade_300ms_ease-out] sm:p-6">
+          <h2 className="font-display text-title text-bone">¿Dónde te lo mandan?</h2>
           <ShippingForm
             busy={step === "paying"}
             submitLabel={
@@ -95,7 +97,7 @@ export function PayFlow({ orderPda, order }: { orderPda: string; order: OrderAcc
             }
             onSubmit={(a) => void submitShipping(a)}
           />
-        </Card>
+        </section>
       )}
 
       {session.pubkey ? (

@@ -16,10 +16,11 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const TONES: Record<ToastTone, string> = {
-  info: "border-steel/40 text-bone",
-  success: "border-released text-bone",
-  error: "border-plasma text-bone",
+// Errors are alerts (05 §3: ember). Plasma stays reserved for disputes.
+const MARK: Record<ToastTone, string> = {
+  info: "bg-steel",
+  success: "bg-released",
+  error: "bg-ember",
 };
 
 const DURATION_MS = 4_000;
@@ -42,14 +43,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 pb-[env(safe-area-inset-bottom)]"
       >
         {items.map((item) => (
           <div
             key={item.id}
             role="status"
-            className={`w-full max-w-sm rounded-xl border bg-graphite px-4 py-3 text-body ${TONES[item.tone]}`}
+            className="flex w-full max-w-sm items-start gap-3 rounded-xl border border-steel/25 bg-graphite px-4 py-3 text-body text-bone animate-[vault-rise_240ms_var(--ease-vault)]"
           >
+            <span aria-hidden="true" className={`mt-2 size-1.5 shrink-0 rotate-45 ${MARK[item.tone]}`} />
             {item.message}
           </div>
         ))}

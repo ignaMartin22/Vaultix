@@ -5,8 +5,8 @@ import { PublicKey } from "@solana/web3.js";
 import { useParams } from "next/navigation";
 
 import { TxButton } from "@/components/TxButton";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Button, ButtonAnchor, ButtonLink } from "@/components/ui/Button";
+import { ErrorNote, Loading } from "@/components/ui/Feedback";
 import { useToast } from "@/components/ui/Toast";
 import { useSession } from "@/lib/auth/session";
 import { getListingByOrder, listingMatchesOrder } from "@/lib/listings-client";
@@ -16,11 +16,13 @@ import { getVaultixClient, isMockClient } from "@/lib/vaultix/client";
 import { FINAL_STATUSES, type OrderAccount } from "@/lib/vaultix/contract";
 
 import { BuyerActions } from "./BuyerActions";
-import { OrderHeader } from "./OrderHeader";
+import { OrderAbout, OrderGallery, OrderSummary } from "./OrderHeader";
+import { OrderTrack } from "./OrderTrack";
 import { OutcomeCard, type Resolution } from "./OutcomeCard";
 import { PayFlow } from "./PayFlow";
 import { Rules } from "./Rules";
 import { SellerActions } from "./SellerActions";
+import { StateNote } from "./StateNote";
 
 /** The dispute split, from the DisputeResolved event (only the mock has events client-side for now). */
 function resolutionOf(orderPda: string): Resolution | null {
@@ -55,10 +57,25 @@ function AfterPayment({
   if (isSeller) return <SellerActions orderPda={orderPda} order={order} />;
   if (isBuyer) return <BuyerActions orderPda={orderPda} order={order} />;
   // Third parties see only the status and the seal (03 §5.3).
-  return <Card className="text-body text-bone">Este link ya fue pagado. Si querés uno igual, pedíselo al vendedor.</Card>;
+  return (
+    <StateNote title="Este link ya fue pagado.">
+      <p>Si querés uno igual, pedíselo al vendedor.</p>
+    </StateNote>
+  );
 }
 
-const NOT_FOUND = "Este link no existe o ya no está disponible.";
+function Unavailable() {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-start gap-6 py-10">
+      <StateNote title="Este link no existe o ya no está disponible.">
+        <p>Revisá que esté completo o pedile al vendedor que te lo mande de nuevo.</p>
+      </StateNote>
+      <ButtonLink href="/" variant="secondary">
+        Ir al inicio
+      </ButtonLink>
+    </div>
+  );
+}
 
 function isPubkey(value: string): boolean {
   try {
@@ -87,23 +104,24 @@ export function OrderPage() {
     enabled: valid,
   });
 
-  if (!valid) return <p className="text-steel">{NOT_FOUND}</p>;
-  if (listing.isPending || order.isPending) return <p className="text-steel">Cargando…</p>;
+  if (!valid) return <Unavailable />;
+  if (listing.isPending || order.isPending) return <Loading label="Abriendo el link…" className="py-10" />;
   if (listing.isError || order.isError) {
-    return <p className="text-plasma">No pudimos cargar este link. Probá de nuevo en un rato.</p>;
+    return <ErrorNote className="py-10">No pudimos cargar este link. Probá de nuevo en un rato.</ErrorNote>;
   }
-  if (!listing.data || !order.data) return <p className="text-steel">{NOT_FOUND}</p>;
+  if (!listing.data || !order.data) return <Unavailable />;
   // The product shown must be the one this order commits to. A seller can close a
   // Created order and re-create it at the same address with other terms; the old
   // listing would then describe an order it no longer matches (X-03).
   if (!listingMatchesOrder(listing.data.listing.listingHash, order.data.listingHash)) {
-    return <p className="text-steel">{NOT_FOUND}</p>;
+    return <Unavailable />;
   }
 
   const o = order.data;
   const isSeller = session.pubkey?.equals(o.seller) ?? false;
   const isBuyer = o.buyer !== null && (session.pubkey?.equals(o.buyer) ?? false);
   const link = typeof window === "undefined" ? "" : window.location.href;
+  const hasPhotos = listing.data.listing.photoUrls.length > 0;
 
   async function copy() {
     try {
@@ -115,52 +133,82 @@ export function OrderPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <OrderHeader listing={listing.data} status={o.status} amount={o.amount} />
-
-      {o.status === "Created" ? (
-        <>
-          <section className="flex flex-col gap-2">
-            <h2 className="text-subtitle font-semibold">Antes de pagar</h2>
-            <Rules order={o} role={isSeller ? "seller" : "buyer"} />
-          </section>
-
-          {isSeller ? (
-            <div className="flex flex-col gap-3">
-              <a
-                href={whatsappUrl(listing.data.listing.title, o.amount, link)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-ion-blue px-5 text-body font-medium text-bone hover:bg-ion-blue/90"
-              >
-                Compartí el link
-              </a>
-              <Button variant="secondary" onClick={() => void copy()}>
-                Copiar link
-              </Button>
-              <TxButton
-                label="Cancelar link"
-                variant="destructive"
-                signer={session.pubkey}
-                successMessage="Cancelaste el link. Nadie más puede pagarlo."
-                invalidate={[vaultixKeys.order(orderId)]}
-                build={(client) => client.buildCloseOrderTx({ order: new PublicKey(orderId), authority: session.pubkey! })}
-              />
-            </div>
-          ) : (
-            <PayFlow orderPda={orderId} order={o} />
-          )}
-        </>
-      ) : (
-        <AfterPayment orderPda={orderId} order={o} isSeller={isSeller} isBuyer={isBuyer} />
-      )}
-
-      {session.switchTestAccount ? (
-        <Button variant="secondary" onClick={session.switchTestAccount}>
-          Modo prueba: sos la cuenta {(session.testAccount ?? 0) + 1}
-          {isSeller ? " (vendedor)" : isBuyer ? " (comprador)" : ""}. Cambiá a la otra
-        </Button>
+    <div
+      className={`grid gap-8 ${hasPhotos ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:gap-16" : "mx-auto w-full max-w-xl"}`}
+    >
+      {hasPhotos ? (
+        <div className="flex flex-col gap-10">
+          <OrderGallery listing={listing.data} />
+          <div className="hidden lg:block">
+            <OrderAbout listing={listing.data} />
+          </div>
+        </div>
       ) : null}
+
+      <div className="flex flex-col gap-8">
+        <OrderSummary orderPda={orderId} listing={listing.data} status={o.status} amount={o.amount} />
+        <OrderTrack status={o.status} />
+        {/* On mobile the description reads before the actions; on desktop it sits under the photos. */}
+        <div className={hasPhotos ? "lg:hidden" : ""}>
+          <OrderAbout listing={listing.data} />
+        </div>
+
+        {o.status === "Created" ? (
+          <>
+            <section aria-labelledby="rules-title" className="flex flex-col gap-3">
+              <h2 id="rules-title" className="font-mono text-label uppercase text-steel">
+                Antes de pagar
+              </h2>
+              <Rules order={o} role={isSeller ? "seller" : "buyer"} />
+            </section>
+
+            {isSeller ? (
+              <div className="flex flex-col gap-3">
+                <ButtonAnchor
+                  fullWidth
+                  href={whatsappUrl(listing.data.listing.title, o.amount, link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Compartí el link
+                </ButtonAnchor>
+                <Button fullWidth variant="secondary" onClick={() => void copy()}>
+                  Copiar link
+                </Button>
+                <div className="mt-4 flex flex-col gap-3 border-t border-steel/15 pt-5">
+                  <p className="text-body text-steel">Si lo cancelás, nadie más va a poder pagarlo.</p>
+                  <TxButton
+                    fullWidth
+                    label="Cancelar link"
+                    variant="destructive"
+                    signer={session.pubkey}
+                    successMessage="Cancelaste el link. Nadie más puede pagarlo."
+                    invalidate={[vaultixKeys.order(orderId)]}
+                    build={(client) => client.buildCloseOrderTx({ order: new PublicKey(orderId), authority: session.pubkey! })}
+                  />
+                </div>
+              </div>
+            ) : (
+              <PayFlow orderPda={orderId} order={o} />
+            )}
+          </>
+        ) : (
+          <AfterPayment orderPda={orderId} order={o} isSeller={isSeller} isBuyer={isBuyer} />
+        )}
+
+        {session.switchTestAccount ? (
+          <div className="flex flex-col gap-2 border-t border-dashed border-steel/25 pt-5">
+            <span className="font-mono text-label uppercase text-ember">Modo prueba</span>
+            <p className="text-body text-steel">
+              Sos la cuenta {(session.testAccount ?? 0) + 1}
+              {isSeller ? " (vendedor)" : isBuyer ? " (comprador)" : ""}.{" "}
+              <button type="button" className="link min-h-11" onClick={session.switchTestAccount}>
+                Cambiá a la otra
+              </button>
+            </p>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

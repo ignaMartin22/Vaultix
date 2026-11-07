@@ -25,6 +25,7 @@
   --text-display--letter-spacing: -0.04em;
   --text-title: 1.5rem;
   --text-title--line-height: 1.875rem;
+  --text-title--letter-spacing: -0.02em;
   --text-subtitle: 1.125rem;
   --text-subtitle--line-height: 1.5rem;
   --text-body: 1rem;
@@ -32,18 +33,102 @@
   --text-label: 0.75rem;
   --text-label--line-height: 1rem;
   --text-label--letter-spacing: 0.04em;
+
+  /* Larger screens: the same hierarchy, more air (display grows, body doesn't). */
+  --text-hero: clamp(2.5rem, 1.5rem + 4.2vw, 4.75rem);
+  --text-hero--line-height: 1.02;
+  --text-hero--letter-spacing: -0.04em;
+  --text-display-lg: 3.5rem;
+  --text-display-lg--line-height: 3.75rem;
+  --text-display-lg--letter-spacing: -0.04em;
+  --text-title-lg: 2rem;
+  --text-title-lg--line-height: 2.375rem;
+  --text-title-lg--letter-spacing: -0.03em;
+
+  --ease-vault: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/*
+ * Inter Display (05 §5): Inter's optical size axis at its top end. Display and
+ * titles only; interface text stays on regular Inter.
+ */
+@utility font-display {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: "opsz" 32;
+  font-weight: 600;
+}
+
+/* Links in running text: bone for contrast, Ion Blue as the link signal. */
+@utility link {
+  color: var(--bone);
+  text-decoration-line: underline;
+  text-decoration-color: var(--ion-blue);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 150ms;
+  &:hover {
+    text-decoration-color: var(--bone);
+  }
 }
 
 html {
   color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--vault-black);
+  color: var(--bone);
+  font-optical-sizing: auto;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--ion-blue) 45%, transparent);
   color: var(--bone);
 }
 
 :focus-visible {
   outline: 2px solid var(--ion-blue);
   outline-offset: 2px;
+}
+
+/* State changes only: sheets rise, panels settle. Nothing loops but loaders. */
+@keyframes vault-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The beam flowing through a primary button while hovered (Button.tsx). */
+@keyframes vault-beam {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes vault-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function SellPage() {
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
       <SellFlow />
     </main>
   );

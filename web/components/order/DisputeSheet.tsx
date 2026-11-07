@@ -50,20 +50,29 @@ export function DisputeSheet({
   return (
     <>
       <Sheet open={open && !topUp} onClose={onClose} title="¿Qué pasó?">
-        <div className="flex flex-col gap-4 text-body">
+        <div className="flex flex-col gap-5 text-body">
           <p className="text-bone">Tu plata sigue en bóveda. Nadie la puede mover mientras se revisa el reclamo.</p>
-          <ul className="flex flex-col gap-2 text-steel">
-            <li>Para abrirlo dejás un depósito de {formatUsdc(deposit)}. Si te dan la razón (la mitad o más), te lo devolvemos.</li>
-            <li>Después, vos y el vendedor suben fotos, videos o notas.</li>
-            <li>Un árbitro revisa todo y decide cómo se reparte el pago.</li>
-          </ul>
+          <ol className="flex flex-col">
+            {[
+              `Para abrirlo dejás un depósito de ${formatUsdc(deposit)}. Si te dan la razón (la mitad o más), te lo devolvemos.`,
+              "Después, vos y el vendedor suben fotos, videos o notas.",
+              "Un árbitro revisa todo y decide cómo se reparte el pago.",
+            ].map((line, i) => (
+              <li key={line} className="flex gap-4 border-t border-steel/15 py-3 text-steel">
+                <span className="font-mono text-label leading-6">{String(i + 1).padStart(2, "0")}</span>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ol>
           <p className="text-steel">Si el problema se puede resolver hablando con el vendedor, probá primero eso.</p>
-          <Button variant="destructive" disabled={dispute.busy} onClick={() => void openDispute()}>
-            {dispute.phase in PHASE ? PHASE[dispute.phase as keyof typeof PHASE] : `Abrí el reclamo (${formatUsdc(deposit)})`}
-          </Button>
-          <Button variant="secondary" onClick={onClose}>
-            Volver
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button fullWidth variant="destructive" disabled={dispute.busy} onClick={() => void openDispute()}>
+              {dispute.phase in PHASE ? PHASE[dispute.phase as keyof typeof PHASE] : `Abrí el reclamo (${formatUsdc(deposit)})`}
+            </Button>
+            <Button fullWidth variant="secondary" onClick={onClose}>
+              Volver
+            </Button>
+          </div>
         </div>
       </Sheet>
       {session.pubkey ? (

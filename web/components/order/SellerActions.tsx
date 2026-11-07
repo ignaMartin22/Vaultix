@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { PublicKey } from "@solana/web3.js";
 
 import { TxButton } from "@/components/TxButton";
-import { Card } from "@/components/ui/Card";
 import { useSession } from "@/lib/auth/session";
 import { activeDeadline, deadlineState, nowSecs } from "@/lib/deadlines";
 import { formatUsdc } from "@/lib/amounts";
@@ -17,6 +16,7 @@ import type { OrderAccount } from "@/lib/vaultix/contract";
 import { Deadline } from "./Deadline";
 import { Evidence } from "./EvidenceSheet";
 import { ShipForm } from "./ShipForm";
+import { FactBlock, StateNote } from "./StateNote";
 
 /** Seller side after payment (03 §5.3): ship, wait for release, or release once it's due. */
 export function SellerActions({ orderPda, order }: { orderPda: string; order: OrderAccount }) {
@@ -39,33 +39,32 @@ export function SellerActions({ orderPda, order }: { orderPda: string; order: Or
   if (order.status === "Paid") {
     return (
       <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-2">
-          <span className="text-subtitle font-semibold">Te pagaron. La plata está en bóveda.</span>
+        <StateNote title="Te pagaron. La plata está en bóveda.">
           {deadline ? (
             <Deadline at={deadline.at}>{(d) => (expired ? `Venció el plazo para despachar (${d}).` : `Despachá antes del ${d}.`)}</Deadline>
           ) : null}
           {expired ? (
-            <span className="text-body text-steel">El comprador ya puede pedir el reembolso. Si todavía no lo pidió, despachá cuanto antes.</span>
+            <p>El comprador ya puede pedir el reembolso. Si todavía no lo pidió, despachá cuanto antes.</p>
           ) : null}
-        </Card>
-
-        <Card className="flex flex-col gap-1">
-          <span className="text-label text-steel">Mandalo a</span>
-          {address.data ? (
-            <>
-              <span className="text-body text-bone">{address.data.fullName}</span>
-              <span className="text-body text-bone">
-                {address.data.street}, {address.data.city} ({address.data.postalCode}), {address.data.province}
+          <FactBlock label="Mandalo a">
+            {address.data ? (
+              <>
+                <span className="font-medium">{address.data.fullName}</span>
+                <span>
+                  {address.data.street}, {address.data.city} ({address.data.postalCode}), {address.data.province}
+                </span>
+                <span>
+                  Tel.: <span className="font-mono">{address.data.phone}</span>
+                </span>
+                {address.data.notes ? <span className="text-steel">{address.data.notes}</span> : null}
+              </>
+            ) : (
+              <span className="text-steel">
+                {address.isPending ? "Cargando…" : "El comprador todavía no cargó sus datos de envío."}
               </span>
-              <span className="text-body text-bone">Tel.: {address.data.phone}</span>
-              {address.data.notes ? <span className="text-body text-steel">{address.data.notes}</span> : null}
-            </>
-          ) : (
-            <span className="text-body text-steel">
-              {address.isPending ? "Cargando…" : "El comprador todavía no cargó sus datos de envío."}
-            </span>
-          )}
-        </Card>
+            )}
+          </FactBlock>
+        </StateNote>
 
         <ShipForm orderPda={orderPda} />
       </div>
@@ -75,22 +74,26 @@ export function SellerActions({ orderPda, order }: { orderPda: string; order: Or
   if (order.status === "Shipped") {
     return (
       <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-2">
-          <span className="text-subtitle font-semibold">Lo despachaste.</span>
+        <StateNote title="Lo despachaste.">
           {deadline ? (
             <Deadline at={deadline.at}>
               {(d) => (expired ? `Ya podés cobrar: el plazo de reclamo venció (${d}).` : `Tu pago se libera el ${d}, o antes si el comprador confirma.`)}
             </Deadline>
           ) : null}
-          <span className="text-body text-steel">Vas a recibir {formatUsdc(sellerNet)}.</span>
+          <p>
+            Vas a recibir <span className="font-mono text-bone">{formatUsdc(sellerNet)}</span>.
+          </p>
           {shipment.data ? (
-            <span className="text-label text-steel">
-              Seguimiento: {CARRIER_LABELS[shipment.data.carrier]} {shipment.data.trackingNumber}
-            </span>
+            <FactBlock label="Seguimiento">
+              <span>
+                {CARRIER_LABELS[shipment.data.carrier]} <span className="font-mono">{shipment.data.trackingNumber}</span>
+              </span>
+            </FactBlock>
           ) : null}
-        </Card>
+        </StateNote>
         {expired ? (
           <TxButton
+            fullWidth
             label="Liberá el pago"
             signer={null}
             successMessage={`Listo: cobraste ${formatUsdc(sellerNet)}.`}
@@ -105,13 +108,12 @@ export function SellerActions({ orderPda, order }: { orderPda: string; order: Or
   if (order.status === "Disputed") {
     return (
       <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-1">
-          <span className="text-subtitle font-semibold">El comprador abrió un reclamo.</span>
-          <span className="text-body text-steel">
+        <StateNote title="El comprador abrió un reclamo.">
+          <p>
             La plata sigue en bóveda. Subí lo que muestre que lo mandaste bien: fotos del paquete, el comprobante del
             correo, la conversación. Un árbitro va a decidir.
-          </span>
-        </Card>
+          </p>
+        </StateNote>
         <Evidence orderPda={orderPda} sellerPubkey={order.seller.toBase58()} />
       </div>
     );

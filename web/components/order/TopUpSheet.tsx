@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Feedback";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
 import { formatUsdc } from "@/lib/amounts";
@@ -76,33 +77,40 @@ export function TopUpSheet({ open, onClose, owner, needed, onEnough }: TopUpShee
           Mandá USDC a tu cuenta por la red <strong className="text-bone">Solana</strong> desde Lemon, Ripio u otra app.
           Apenas lleguen, seguimos solos.
         </p>
-        {qr ? (
-          // eslint-disable-next-line @next/next/no-img-element -- generated data URL
-          <img src={qr} alt="Código QR de tu cuenta" className="mx-auto h-48 w-48 rounded-xl" />
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void copy()}
-          className="break-all rounded-xl border border-steel/40 bg-vault-black px-4 py-3 text-left font-mono text-label text-bone"
-        >
-          {address}
-          <span className="mt-1 block font-sans text-steel">Tocá para copiar</span>
-        </button>
-        <p className="text-label text-steel" aria-live="polite">
-          Tenés {formatUsdc(have)}. Revisamos cada 5 segundos.
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-stretch">
+          {qr ? (
+            // eslint-disable-next-line @next/next/no-img-element -- generated data URL
+            <img src={qr} alt="Código QR de tu cuenta" className="size-44 shrink-0 rounded-xl" />
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="flex w-full flex-col justify-between gap-3 rounded-xl border border-steel/40 bg-vault-black px-4 py-3 text-left transition-colors hover:border-steel"
+          >
+            <span className="font-mono text-label uppercase text-steel">Tu cuenta</span>
+            <span className="break-all font-mono text-label text-bone">{address}</span>
+            <span className="text-label text-ion-blue">Tocá para copiar</span>
+          </button>
+        </div>
+        <p className="flex items-center gap-3 text-label text-steel" aria-live="polite">
+          <Spinner className="size-4" />
+          <span>
+            Tenés <span className="font-mono text-bone">{formatUsdc(have)}</span>. Revisamos cada 5 segundos.
+          </span>
         </p>
         {isDevnet ? (
           <a
             href="https://faucet.circle.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-body text-ion-blue underline"
+            className="link self-start text-body"
           >
             Modo prueba: pedí USDC gratis en el faucet de Circle (red Solana Devnet)
           </a>
         ) : null}
         {isMockClient(client) ? (
           <Button
+            fullWidth
             variant="secondary"
             onClick={() => {
               client.mintUsdc(owner, missing);

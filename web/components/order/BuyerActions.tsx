@@ -6,7 +6,6 @@ import { useState } from "react";
 
 import { TxButton } from "@/components/TxButton";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { formatUsdc } from "@/lib/amounts";
 import { useSession } from "@/lib/auth/session";
 import { activeDeadline, deadlineState, nowSecs } from "@/lib/deadlines";
@@ -18,6 +17,7 @@ import type { OrderAccount } from "@/lib/vaultix/contract";
 import { Deadline } from "./Deadline";
 import { DisputeSheet } from "./DisputeSheet";
 import { Evidence } from "./EvidenceSheet";
+import { FactBlock, StateNote } from "./StateNote";
 
 /** Buyer side after payment (03 §5.3): wait, confirm, complain, or get the refund once due. */
 export function BuyerActions({ orderPda, order }: { orderPda: string; order: OrderAccount }) {
@@ -37,19 +37,17 @@ export function BuyerActions({ orderPda, order }: { orderPda: string; order: Ord
   if (order.status === "Paid") {
     return (
       <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-2">
-          <span className="text-subtitle font-semibold">Tu plata está en bóveda.</span>
+        <StateNote title="Tu plata está en bóveda.">
           {deadline ? (
             <Deadline at={deadline.at}>
               {(d) => (expired ? `El vendedor no despachó a tiempo (${d}).` : `El vendedor tiene hasta el ${d} para despachar.`)}
             </Deadline>
           ) : null}
-          {!expired ? (
-            <span className="text-body text-steel">Si no lo despacha a tiempo, te devolvemos todo.</span>
-          ) : null}
-        </Card>
+          {!expired ? <p>Si no lo despacha a tiempo, te devolvemos todo.</p> : null}
+        </StateNote>
         {expired ? (
           <TxButton
+            fullWidth
             label={`Pedí el reembolso (${formatUsdc(order.amount)})`}
             signer={null}
             successMessage={`Te devolvimos ${formatUsdc(order.amount)}.`}
@@ -65,39 +63,41 @@ export function BuyerActions({ orderPda, order }: { orderPda: string; order: Ord
     const site = shipment.data ? CARRIER_SITES[shipment.data.carrier] : undefined;
     return (
       <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-2">
-          <span className="text-subtitle font-semibold">El vendedor ya despachó.</span>
-          {shipment.data ? (
-            <span className="text-body text-bone">
-              Seguimiento: {CARRIER_LABELS[shipment.data.carrier]} {shipment.data.trackingNumber}
-              {site ? (
-                <>
-                  {" · "}
-                  <a href={site} target="_blank" rel="noopener noreferrer" className="text-ion-blue underline">
-                    Seguilo en {CARRIER_LABELS[shipment.data.carrier]}
-                  </a>
-                </>
-              ) : null}
-            </span>
-          ) : (
-            <span className="text-body text-steel">El vendedor no cargó un número de seguimiento.</span>
-          )}
+        <StateNote title="El vendedor ya despachó.">
           {deadline ? (
             <Deadline at={deadline.at}>
               {(d) => (expired ? `Venció el plazo para reclamar (${d}).` : `Podés reclamar hasta el ${d}. Después el pago se libera solo.`)}
             </Deadline>
           ) : null}
-        </Card>
+          <FactBlock label="Seguimiento">
+            {shipment.data ? (
+              <>
+                <span>
+                  {CARRIER_LABELS[shipment.data.carrier]}{" "}
+                  <span className="font-mono">{shipment.data.trackingNumber}</span>
+                </span>
+                {site ? (
+                  <a href={site} target="_blank" rel="noopener noreferrer" className="link self-start">
+                    Seguilo en {CARRIER_LABELS[shipment.data.carrier]}
+                  </a>
+                ) : null}
+              </>
+            ) : (
+              <span className="text-steel">El vendedor no cargó un número de seguimiento.</span>
+            )}
+          </FactBlock>
+        </StateNote>
         {!expired ? (
           <>
             <TxButton
+              fullWidth
               label="Confirmá que llegó"
               signer={session.pubkey}
               successMessage="Listo: le liberamos el pago al vendedor."
               invalidate={[vaultixKeys.order(orderPda)]}
               build={(client) => client.buildConfirmReceiptTx({ order: pda, buyer: session.pubkey! })}
             />
-            <Button variant="destructive" onClick={() => setDisputeOpen(true)}>
+            <Button fullWidth variant="destructive" onClick={() => setDisputeOpen(true)}>
               Tengo un problema
             </Button>
             <DisputeSheet open={disputeOpen} onClose={() => setDisputeOpen(false)} orderPda={orderPda} order={order} />
@@ -110,13 +110,12 @@ export function BuyerActions({ orderPda, order }: { orderPda: string; order: Ord
   if (order.status === "Disputed") {
     return (
       <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-1">
-          <span className="text-subtitle font-semibold">Abriste un reclamo.</span>
-          <span className="text-body text-steel">
+        <StateNote title="Abriste un reclamo.">
+          <p>
             Tu plata y tu depósito siguen en bóveda. Subí fotos, videos o una nota que muestren qué pasó. Un árbitro va
             a decidir y te avisamos por mail.
-          </span>
-        </Card>
+          </p>
+        </StateNote>
         <Evidence orderPda={orderPda} sellerPubkey={order.seller.toBase58()} />
       </div>
     );

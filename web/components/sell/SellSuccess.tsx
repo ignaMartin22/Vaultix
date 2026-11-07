@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { LinkPreview } from "@/components/LinkPreview";
+import { Button, ButtonAnchor, ButtonLink } from "@/components/ui/Button";
+import { PageIntro } from "@/components/ui/Feedback";
 import { useToast } from "@/components/ui/Toast";
 import { formatUsdc } from "@/lib/amounts";
 import { whatsappUrl } from "@/lib/sell";
@@ -12,12 +11,15 @@ export interface SellSuccessProps {
   link: string;
   title: string;
   amount: bigint;
+  /** Local preview of the cover, if there is one. */
+  photoUrl?: string | null;
   onCreateAnother: () => void;
 }
 
 /** Done: the link, plus sharing by WhatsApp or copying it (03 §5.2). */
-export function SellSuccess({ link, title, amount, onCreateAnother }: SellSuccessProps) {
+export function SellSuccess({ link, title, amount, photoUrl, onCreateAnother }: SellSuccessProps) {
   const toast = useToast();
+  const address = link.replace(/^https?:\/\//, "");
 
   async function copy() {
     try {
@@ -29,40 +31,47 @@ export function SellSuccess({ link, title, amount, onCreateAnother }: SellSucces
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-title font-semibold">Tu link está listo</h1>
-        <p className="text-steel">Mandáselo a tu comprador. Cuando pague, la plata queda en bóveda y te avisamos.</p>
+    <div className="grid gap-12 animate-[vault-fade_400ms_ease-out] lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-20">
+      <div className="flex flex-col gap-10">
+        <PageIntro eyebrow="Link creado" title="Tu link está listo.">
+          Mandáselo a tu comprador. Cuando pague, la plata queda en bóveda y te avisamos.
+        </PageIntro>
+
+        <div className="flex flex-col gap-2">
+          <span className="font-mono text-label uppercase text-steel">Tu link</span>
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="group flex items-center justify-between gap-4 rounded-xl border border-steel/40 bg-graphite px-4 py-3 text-left transition-colors hover:border-steel"
+          >
+            <span className="min-w-0 break-all font-mono text-body text-bone">{address}</span>
+            <span className="shrink-0 text-label text-steel transition-colors group-hover:text-bone">Copiar</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <ButtonAnchor href={whatsappUrl(title, amount, link)} target="_blank" rel="noopener noreferrer">
+            Compartí por WhatsApp
+          </ButtonAnchor>
+          <Button variant="secondary" onClick={() => void copy()}>
+            Copiar link
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-1 border-t border-steel/15 pt-6 sm:flex-row sm:gap-6">
+          <ButtonLink href={new URL(link).pathname} variant="ghost" className="sm:-ml-5">
+            Ver cómo lo ve tu comprador
+          </ButtonLink>
+          <Button variant="ghost" onClick={onCreateAnother}>
+            Crear otro link
+          </Button>
+        </div>
       </div>
 
-      <Card className="flex flex-col gap-1">
-        <span className="text-body text-bone">{title}</span>
-        <span className="font-mono text-bone">{formatUsdc(amount)}</span>
-        <span className="break-all font-mono text-label text-steel">{link}</span>
-      </Card>
-
-      <div className="flex flex-col gap-3">
-        <a
-          href={whatsappUrl(title, amount, link)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-12 w-full items-center justify-center rounded-xl bg-ion-blue px-5 text-body font-medium text-bone hover:bg-ion-blue/90"
-        >
-          Compartí por WhatsApp
-        </a>
-        <Button variant="secondary" onClick={() => void copy()}>
-          Copiar link
-        </Button>
-        <Link
-          href={new URL(link).pathname}
-          className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-steel px-5 text-body font-medium text-bone hover:bg-graphite"
-        >
-          Ver cómo lo ve tu comprador
-        </Link>
-        <Button variant="secondary" onClick={onCreateAnother}>
-          Crear otro link
-        </Button>
-      </div>
+      <aside aria-label="Vista previa" className="flex flex-col gap-3">
+        <span className="font-mono text-label uppercase text-steel">Así se ve al compartirlo</span>
+        <LinkPreview title={title} amount={formatUsdc(amount)} photoUrl={photoUrl} address={address} />
+      </aside>
     </div>
   );
 }

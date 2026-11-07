@@ -5,6 +5,7 @@ import { ImageResponse } from "next/og";
 
 import { formatUsdc } from "@/lib/amounts";
 import { BRAND } from "@/lib/brand";
+import { isotypeSvg } from "@/lib/isotype";
 import { listingMeta } from "@/lib/server/listing-meta";
 
 export const alt = "Pago protegido con Vaultix";
@@ -25,6 +26,8 @@ export default async function Image({ params }: { params: Promise<{ orderId: str
 
   const title = meta?.title ?? "Pagá protegido";
   const price = meta ? formatUsdc(BigInt(meta.amountUnits)) : null;
+  // The isotype stands alone here: the wordmark needs Inter Display, which the renderer doesn't load.
+  const isotype = `data:image/svg+xml;utf8,${encodeURIComponent(isotypeSvg(BRAND.bone))}`;
 
   return new ImageResponse(
     (
@@ -52,16 +55,19 @@ export default async function Image({ params }: { params: Promise<{ orderId: str
             <div
               style={{
                 display: "flex",
+                alignItems: "center",
                 alignSelf: "flex-start",
-                padding: "10px 18px",
-                borderRadius: 12,
+                gap: 16,
+                padding: "12px 22px 12px 12px",
+                borderRadius: 16,
                 background: BRAND.graphite,
-                color: BRAND.steel,
+                color: BRAND.bone,
                 fontSize: 24,
                 letterSpacing: 2,
               }}
             >
-              PAGO PROTEGIDO · FONDOS EN BÓVEDA
+              <img src={isotype} alt="" width={44} height={44} />
+              PAGO PROTEGIDO
             </div>
             <div style={{ display: "flex", fontSize: meta?.photoUrl ? 60 : 76, fontWeight: 700, lineHeight: 1.1 }}>
               {title}

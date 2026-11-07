@@ -7,6 +7,11 @@ import { useEffect, useRef, useState } from "react";
  * Spectral bands + grain PNG) renders immediately; the WebGPU version loads
  * lazily on top and fades in only if it starts. Never blocks the text.
  */
+const BANDS = [
+  "linear-gradient(118deg, transparent 40%, #000 47%, transparent 53%, #000 58%, transparent 63%, #000 67%, transparent 72%)",
+  "linear-gradient(to left bottom, #000 10%, transparent 52%)",
+].join(", ");
+
 export function SpectralHero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gpuReady, setGpuReady] = useState(false);
@@ -38,14 +43,19 @@ export function SpectralHero() {
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden bg-vault-black">
-      {/* Fallback: bands at ~115deg masked to a narrow strip, so >= 60% stays black. */}
+      {/*
+        Fallback (05 §4): three soft parallel bands flowing diagonally, intersected
+        with a fade anchored top-right, so the light never reaches the text block
+        below and well over 60% of the frame stays Vault Black.
+      */}
       <div
-        className={`absolute inset-0 transition-opacity duration-700 ${gpuReady ? "opacity-0" : "opacity-100"}`}
+        className={`absolute inset-0 transition-opacity duration-700 ${gpuReady ? "opacity-0" : "opacity-90"}`}
         style={{
-          backgroundImage: "var(--spectral)",
-          maskImage: "linear-gradient(115deg, transparent 28%, black 46%, black 54%, transparent 72%)",
-          WebkitMaskImage: "linear-gradient(115deg, transparent 28%, black 46%, black 54%, transparent 72%)",
-          opacity: 0.9,
+          backgroundImage: "linear-gradient(105deg, var(--deep-teal) 38%, var(--ion-blue) 52%, var(--ultra-violet) 66%, var(--plasma) 82%, var(--ember) 96%)",
+          maskImage: BANDS,
+          WebkitMaskImage: BANDS,
+          maskComposite: "intersect",
+          WebkitMaskComposite: "source-in",
         }}
       />
       <div

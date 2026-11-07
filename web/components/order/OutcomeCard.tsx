@@ -1,7 +1,8 @@
-import { Card } from "@/components/ui/Card";
 import { formatUsdc } from "@/lib/amounts";
 import { computeReleaseSplit } from "@/lib/fees";
 import type { OrderAccount } from "@/lib/vaultix/contract";
+
+import { StateNote } from "./StateNote";
 
 /** Final states (03 §5.3): what happened, with amounts from the order's snapshot. */
 export interface Resolution {
@@ -17,37 +18,61 @@ export interface OutcomeCardProps {
   resolution?: Resolution | null;
 }
 
+/** One row of the final breakdown: who got what, amount in mono. */
+function Line({ label, amount, muted }: { label: string; amount: bigint; muted?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-t border-steel/15 py-2.5">
+      <dt className={muted ? "text-steel" : "text-bone"}>{label}</dt>
+      <dd className={`font-mono tabular-nums ${muted ? "text-steel" : "text-bone"}`}>{formatUsdc(amount)}</dd>
+    </div>
+  );
+}
+
 export function OutcomeCard({ order, role, resolution }: OutcomeCardProps) {
   const { sellerNet, fee } = computeReleaseSplit(order.amount, order.feeBps);
 
-  let title: string;
-  let detail: string;
   switch (order.status) {
     case "Released":
-      title = "Pago liberado";
-      detail =
-        role === "seller"
-          ? `Cobraste ${formatUsdc(sellerNet)}. La comisión fue ${formatUsdc(fee)}.`
-          : `El vendedor cobró ${formatUsdc(sellerNet)}. La compra está cerrada.`;
-      break;
+      return (
+        <StateNote title="Pago liberado.">
+          <p>
+            {role === "seller" ? "Cobraste. La operación está cerrada." : "El vendedor cobró. La compra está cerrada."}
+          </p>
+          <dl className="mt-2">
+            <Line label={role === "seller" ? "Cobraste" : "Cobró el vendedor"} amount={sellerNet} />
+            <Line label="Comisión" amount={fee} muted />
+          </dl>
+        </StateNote>
+      );
     case "Refunded":
-      title = "Reembolsado";
-      detail =
-        role === "buyer"
-          ? `Te devolvimos ${formatUsdc(order.amount)}. No se cobró comisión.`
-          : `El comprador recibió ${formatUsdc(order.amount)} de vuelta porque no se despachó a tiempo.`;
-      break;
+      return (
+        <StateNote title="Reembolsado.">
+          <p>
+            {role === "buyer"
+              ? "Te devolvimos todo. No se cobró comisión."
+              : "El comprador recibió todo de vuelta porque no se despachó a tiempo."}
+          </p>
+          <dl className="mt-2">
+            <Line label={role === "buyer" ? "Te devolvimos" : "Recibió el comprador"} amount={order.amount} />
+          </dl>
+        </StateNote>
+      );
     default:
-      title = "Reclamo resuelto";
-      detail = resolution
-        ? `El comprador recibió ${formatUsdc(resolution.buyerAmount)} y el vendedor ${formatUsdc(resolution.sellerAmount)} (depósito incluido). Comisión: ${formatUsdc(resolution.fee)}.`
-        : "El árbitro decidió cómo se repartió el pago. Ya está en las cuentas de cada uno.";
+      return (
+        <StateNote title="Reclamo resuelto.">
+          {resolution ? (
+            <>
+              <dl className="mt-1">
+                <Line label="Comprador" amount={resolution.buyerAmount} />
+                <Line label="Vendedor" amount={resolution.sellerAmount} />
+                <Line label="Comisión" amount={resolution.fee} muted />
+              </dl>
+              <p className="text-label">Los montos incluyen el depósito del reclamo.</p>
+            </>
+          ) : (
+            <p>El árbitro decidió cómo se repartió el pago. Ya está en las cuentas de cada uno.</p>
+          )}
+        </StateNote>
+      );
   }
-
-  return (
-    <Card className="flex flex-col gap-1">
-      <span className="text-subtitle font-semibold">{title}</span>
-      <span className="text-body text-steel">{detail}</span>
-    </Card>
-  );
 }

@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui/Card";
 import { formatUsdc } from "@/lib/amounts";
 import { computeReleaseSplit, disputeDepositFor } from "@/lib/fees";
 
@@ -11,12 +10,14 @@ export interface RulesSummaryProps {
   claimWindowSecs: bigint;
 }
 
-function days(secs: bigint): string {
+/** "5 días" from a duration in seconds. */
+export function days(secs: bigint): string {
   const n = Number(secs / 86_400n);
   return n === 1 ? "1 día" : `${n} días`;
 }
 
-function percent(bps: number): string {
+/** "1,5%" from basis points. */
+export function percent(bps: number): string {
   return `${(bps / 100).toLocaleString("es-AR", { maximumFractionDigits: 2 })}%`;
 }
 
@@ -43,17 +44,23 @@ export function RulesSummary(props: RulesSummaryProps) {
         ];
 
   return (
-    <Card className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-2">
-        {lines.map((line) => (
-          <li key={line} className="text-body text-bone">
-            {line}
+    <div className="flex flex-col rounded-2xl border border-steel/15 bg-graphite">
+      <ol className="flex flex-col px-5 sm:px-6">
+        {lines.map((line, i) => (
+          <li key={line} className="flex gap-4 border-b border-steel/15 py-4 text-body text-bone">
+            <span className="font-mono text-label leading-6 text-steel">{String(i + 1).padStart(2, "0")}</span>
+            <span className="text-pretty">{line}</span>
           </li>
         ))}
-      </ul>
-      <details className="text-body text-steel">
-        <summary className="cursor-pointer text-bone">¿Cómo funciona?</summary>
-        <div className="mt-2 flex flex-col gap-2">
+      </ol>
+      <details className="group px-5 py-4 text-body text-steel sm:px-6">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-bone [&::-webkit-details-marker]:hidden">
+          ¿Cómo funciona?
+          <svg aria-hidden="true" viewBox="0 0 12 12" className="size-3 text-steel transition-transform group-open:rotate-180">
+            <path d="M2 4.5 6 8.5l4-4" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </summary>
+        <div className="mt-2 flex flex-col gap-3 text-pretty">
           <p>
             El pago queda guardado en una bóveda que nadie puede tocar: ni el vendedor, ni el comprador, ni
             nosotros. Se libera solo con estas reglas.
@@ -66,6 +73,6 @@ export function RulesSummary(props: RulesSummaryProps) {
           <p>La comisión se cobra solo cuando el vendedor cobra. Si hay reembolso, no se cobra nada.</p>
         </div>
       </details>
-    </Card>
+    </div>
   );
 }

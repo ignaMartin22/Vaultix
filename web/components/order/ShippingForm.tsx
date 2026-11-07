@@ -41,18 +41,18 @@ export function ShippingForm({ busy, submitLabel, onSubmit }: ShippingFormProps)
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
       <p className="text-body text-steel">El vendedor ve estos datos recién cuando pagás.</p>
-      <Field label="Nombre y apellido" autoComplete="name" value={address.fullName} onChange={set("fullName")} error={missing("fullName")} />
-      <Field label="Teléfono" type="tel" autoComplete="tel" value={address.phone} onChange={set("phone")} error={missing("phone")} />
-      <Field label="Dirección" autoComplete="street-address" value={address.street} onChange={set("street")} error={missing("street")} />
+      <Field onSurface label="Nombre y apellido" autoComplete="name" value={address.fullName} onChange={set("fullName")} error={missing("fullName")} />
+      <Field onSurface label="Teléfono" type="tel" autoComplete="tel" value={address.phone} onChange={set("phone")} error={missing("phone")} />
+      <Field onSurface label="Dirección" autoComplete="street-address" value={address.street} onChange={set("street")} error={missing("street")} />
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Ciudad" autoComplete="address-level2" value={address.city} onChange={set("city")} error={missing("city")} />
-        <Field label="Código postal" autoComplete="postal-code" value={address.postalCode} onChange={set("postalCode")} error={missing("postalCode")} />
+        <Field onSurface label="Ciudad" autoComplete="address-level2" value={address.city} onChange={set("city")} error={missing("city")} />
+        <Field onSurface label="Código postal" autoComplete="postal-code" value={address.postalCode} onChange={set("postalCode")} error={missing("postalCode")} />
       </div>
-      <Field label="Provincia" autoComplete="address-level1" value={address.province} onChange={set("province")} error={missing("province")} />
-      <Field label="Notas (opcional)" value={address.notes} onChange={set("notes")} placeholder="Piso, timbre, horario…" />
-      <Button type="submit" disabled={busy}>
+      <Field onSurface label="Provincia" autoComplete="address-level1" value={address.province} onChange={set("province")} error={missing("province")} />
+      <Field onSurface label="Notas (opcional)" value={address.notes} onChange={set("notes")} placeholder="Piso, timbre, horario…" />
+      <Button fullWidth type="submit" disabled={busy}>
         {submitLabel}
       </Button>
     </form>
