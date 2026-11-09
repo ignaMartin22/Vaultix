@@ -179,6 +179,18 @@ export interface BuildCloseOrderParams {
   authority: PublicKey;
 }
 
+/**
+ * A withdrawal: USDC from the owner's account to another Solana address
+ * (not part of the program; an SPL transfer the sponsor pays for).
+ */
+export interface BuildWithdrawUsdcParams {
+  owner: PublicKey;
+  /** A wallet address (the owner of the USDC account), not a token account. */
+  destination: PublicKey;
+  /** Minimum units. */
+  amount: bigint;
+}
+
 // ---------------------------------------------------------------------------
 // Events (events.rs). Every event carries `order` (or `config`) and `timestamp`.
 // ---------------------------------------------------------------------------
@@ -355,4 +367,6 @@ export interface VaultixClient {
   buildOpenDisputeTx(params: BuildOpenDisputeParams): Promise<Transaction>;
   buildResolveDisputeTx(params: BuildResolveDisputeParams): Promise<Transaction>;
   buildCloseOrderTx(params: BuildCloseOrderParams): Promise<Transaction>;
+  /** Creates the destination's USDC account if missing, then transfers. Sponsored. */
+  buildWithdrawUsdcTx(params: BuildWithdrawUsdcParams): Promise<Transaction>;
 }

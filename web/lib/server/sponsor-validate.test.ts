@@ -9,7 +9,10 @@ import {
 import { describe, expect, it, vi } from "vitest";
 
 import idl from "../vaultix/idl.json";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../vaultix/pdas";
+import { createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction } from "@solana/spl-token";
+
+import { ASSOCIATED_TOKEN_PROGRAM_ID, associatedTokenAddress, TOKEN_PROGRAM_ID } from "../vaultix/pdas";
+import { WITHDRAW_DAILY_LIMIT, WITHDRAW_USDC } from "../withdraw";
 import type { AuthUser } from "./auth";
 import { ApiError } from "./errors";
 import { createSponsor, parseSecretKey, utcDay } from "./fee-payer";
@@ -261,6 +264,128 @@ describe("createSponsor: rule 4 (daily limit) and sending", () => {
     const failed = setup(1, vi.fn<SendFn>(async () => Promise.reject(new Error("custom program error: 0x1770"))));
     expect(((await failed.sponsor(user, wire()).catch((e: unknown) => e)) as ApiError).code).toBe("tx_failed");
     warn.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Withdrawals (owner decision, option A)
+// ---------------------------------------------------------------------------
+
+const recipient = Keypair.generate().publicKey;
+
+/** The USDC account of `owner` (classic token program). */
+const usdcAta = (owner: PublicKey, mint: PublicKey = usdcMint) => associatedTokenAddress(owner, mint, TOKEN_PROGRAM_ID);
+
+function destinationAtaCreate(owner: PublicKey = recipient, ata: PublicKey = usdcAta(recipient)) {
+  return createAssociatedTokenAccountIdempotentInstruction(feePayer.publicKey, ata, owner, usdcMint, TOKEN_PROGRAM_ID);
+}
+
+function transferOut({
+  amount = 2_000_000n,
+  from = seller.publicKey,
+  source = usdcAta(from),
+  destination = usdcAta(recipient),
+  mint = usdcMint,
+  decimals = 6,
+}: { amount?: bigint; from?: PublicKey; source?: PublicKey; destination?: PublicKey; mint?: PublicKey; decimals?: number } = {}) {
+  return createTransferCheckedInstruction(source, mint, destination, from, amount, decimals, [], TOKEN_PROGRAM_ID);
+}
+
+describe("validateSponsoredTx: withdrawals", () => {
+  it("accepts creating the destination's USDC account and a transfer out of your own", () => {
+    expect(validateSponsoredTx(tx([destinationAtaCreate(), transferOut()]), ctx)).toEqual([WITHDRAW_USDC]);
+  });
+
+  it("accepts a transfer to an account that already exists", () => {
+    expect(validateSponsoredTx(tx([transferOut()]), ctx)).toEqual([WITHDRAW_USDC]);
+  });
+
+  it("rejects less than the minimum (dust would drain the fee payer through account rent)", () => {
+    expectRejected(() => validateSponsoredTx(tx([destinationAtaCreate(), transferOut({ amount: 999_999n })]), ctx), /mínimo/);
+  });
+
+  it("rejects money that doesn't come from the caller's own USDC account", () => {
+    expectRejected(() => validateSponsoredTx(tx([transferOut({ source: usdcAta(stranger.publicKey) })]), ctx), /tu cuenta/);
+  });
+
+  it("rejects another token and wrong decimals", () => {
+    const otherMint = Keypair.generate().publicKey;
+    expectRejected(
+      () => validateSponsoredTx(tx([transferOut({ mint: otherMint, source: usdcAta(seller.publicKey, otherMint) })]), ctx),
+      /USDC/,
+    );
+    expectRejected(() => validateSponsoredTx(tx([transferOut({ decimals: 9 })]), ctx), /decimales/);
+  });
+
+  it("rejects sending to the same account", () => {
+    expectRejected(() => validateSponsoredTx(tx([transferOut({ destination: usdcAta(seller.publicKey) })]), ctx), /misma cuenta/);
+  });
+
+  it("rejects creating an account that isn't the destination", () => {
+    const other = Keypair.generate().publicKey;
+    expectRejected(
+      () => validateSponsoredTx(tx([destinationAtaCreate(other, usdcAta(other)), transferOut()]), ctx),
+      /destino/,
+    );
+  });
+
+  it("rejects two transfers, or a withdrawal mixed with a Vaultix instruction", () => {
+    expectRejected(() => validateSponsoredTx(tx([transferOut(), transferOut()]), ctx), /una transferencia/);
+    expectRejected(
+      () => validateSponsoredTx(tx([transferOut(), vaultixIx("pay", { buyer: seller.publicKey })]), ctx),
+      /no permitido/,
+    );
+  });
+
+  it("rejects the fee payer as the source of the money", () => {
+    const t = tx([transferOut({ from: feePayer.publicKey })], [feePayer]);
+    expectRejected(() => validateSponsoredTx(t, ctx));
+  });
+});
+
+describe("createSponsor: withdrawal daily cap", () => {
+  const user: AuthUser = {
+    privyUserId: "did:privy:ana",
+    pubkey: seller.publicKey.toBase58(),
+    solanaPubkeys: [seller.publicKey.toBase58()],
+    email: null,
+  };
+  const wire = () => tx([destinationAtaCreate(), transferOut()]).serialize({ requireAllSignatures: false }).toString("base64");
+
+  function setup(withdrawalsToday: number) {
+    const incrementUsage = vi.fn(async (key: string) => (key.startsWith("withdraw:") ? withdrawalsToday : 1));
+    const send = vi.fn(async () => "sig-withdraw");
+    const sponsor = createSponsor({
+      feePayer,
+      programId,
+      usdcMint,
+      dailyLimit: 20,
+      incrementUsage,
+      send,
+      now: () => new Date("2026-11-09T12:00:00Z"),
+    });
+    return { sponsor, incrementUsage, send };
+  }
+
+  it("counts a withdrawal in the general limit and in its own", async () => {
+    const { sponsor, incrementUsage } = setup(1);
+    await expect(sponsor(user, wire())).resolves.toEqual({ signature: "sig-withdraw" });
+    expect(incrementUsage).toHaveBeenCalledWith("did:privy:ana", "2026-11-09");
+    expect(incrementUsage).toHaveBeenCalledWith("withdraw:did:privy:ana", "2026-11-09");
+  });
+
+  it("stops at WITHDRAW_DAILY_LIMIT without sending", async () => {
+    const { sponsor, send } = setup(WITHDRAW_DAILY_LIMIT + 1);
+    const err = (await sponsor(user, wire()).catch((e: unknown) => e)) as ApiError;
+    expect(err.code).toBe("rate_limited");
+    expect(err.message).toMatch(/retiros por día/);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("doesn't count a Vaultix operation as a withdrawal", async () => {
+    const { sponsor, incrementUsage } = setup(99);
+    await sponsor(user, createOrderTx().serialize({ requireAllSignatures: false }).toString("base64"));
+    expect(incrementUsage).toHaveBeenCalledTimes(1);
   });
 });
 

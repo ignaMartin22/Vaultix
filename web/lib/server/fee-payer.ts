@@ -9,6 +9,7 @@ import type { AuthUser } from "./auth";
 import { need, serverEnv } from "./env";
 import { ApiError } from "./errors";
 import { supabaseAdmin } from "./supabase";
+import { WITHDRAW_DAILY_LIMIT, WITHDRAW_USDC } from "../withdraw";
 import { decodeTransaction, validateSponsoredTx } from "./sponsor-validate";
 
 /** Circle's devnet USDC, when `NEXT_PUBLIC_USDC_MINT` is unset. */
@@ -37,6 +38,8 @@ export interface SponsorDeps {
   programId: PublicKey;
   usdcMint: PublicKey;
   dailyLimit: number;
+  /** Sponsored withdrawals per user per day (default WITHDRAW_DAILY_LIMIT). */
+  withdrawDailyLimit?: number;
   /** Atomically increments and returns today's count for the user. */
   incrementUsage(privyUserId: string, day: string): Promise<number>;
   send(raw: Buffer): Promise<string>;
@@ -51,7 +54,7 @@ function isBlockhashExpired(err: unknown): boolean {
 export function createSponsor(deps: SponsorDeps) {
   return async function sponsor(user: AuthUser, base64: unknown): Promise<{ signature: string }> {
     const tx: Transaction = decodeTransaction(base64);
-    validateSponsoredTx(tx, {
+    const names = validateSponsoredTx(tx, {
       feePayer: deps.feePayer.publicKey,
       userPubkeys: user.solanaPubkeys,
       programId: deps.programId,
@@ -61,6 +64,14 @@ export function createSponsor(deps: SponsorDeps) {
     // Rule 4: counted before sending, so failed attempts count too.
     const count = await deps.incrementUsage(user.privyUserId, utcDay(deps.now?.()));
     if (count > deps.dailyLimit) throw new ApiError("rate_limited");
+    if (names.includes(WITHDRAW_USDC)) {
+      // Withdrawals also have their own, tighter count (same table, own key).
+      const withdrawals = await deps.incrementUsage(`withdraw:${user.privyUserId}`, utcDay(deps.now?.()));
+      const limit = deps.withdrawDailyLimit ?? WITHDRAW_DAILY_LIMIT;
+      if (withdrawals > limit) {
+        throw new ApiError("rate_limited", `Podés hacer hasta ${limit} retiros por día. Probá de nuevo mañana.`);
+      }
+    }
 
     tx.partialSign(deps.feePayer);
     if (!tx.verifySignatures(true)) throw new ApiError("bad_request", "Faltan firmas en la operación.");

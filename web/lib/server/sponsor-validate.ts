@@ -13,7 +13,14 @@ import {
 } from "@solana/web3.js";
 
 import idl from "../vaultix/idl.json";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../vaultix/pdas";
+import { MIN_WITHDRAW_UNITS, WITHDRAW_USDC } from "../withdraw";
+import { USDC_DECIMALS } from "../vaultix/contract";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  associatedTokenAddress,
+  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+} from "../vaultix/pdas";
 import { ApiError } from "./errors";
 
 /** Instructions users may get sponsored. `resolve_dispute` and config are excluded. */
@@ -43,6 +50,8 @@ export const MAX_COMPUTE_UNIT_LIMIT = 400_000;
 export const MAX_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS = 100_000n;
 
 const ATA_CREATE_IDEMPOTENT = 1;
+/** SPL Token `TransferChecked`: tag, amount (u64 LE), decimals (u8). */
+const TOKEN_TRANSFER_CHECKED = 12;
 const CU_SET_LIMIT = 2;
 const CU_SET_PRICE = 3;
 
@@ -128,6 +137,69 @@ function checkVaultix(ix: TransactionInstruction, ctx: SponsorContext): string {
   return def.name;
 }
 
+function isTokenProgram(id: PublicKey): boolean {
+  return id.equals(TOKEN_PROGRAM_ID) || id.equals(TOKEN_2022_PROGRAM_ID);
+}
+
+/**
+ * A withdrawal (owner decision, option A): compute budget at most, then at
+ * most one idempotent creation of the destination's USDC account (Vaultix
+ * pays its rent) and exactly one USDC `TransferChecked` out of the caller's
+ * own account, for at least MIN_WITHDRAW_UNITS. Nothing else rides along.
+ */
+function validateWithdraw(tx: Transaction, ctx: SponsorContext): void {
+  const computeSeen = new Set<number>();
+  let transfer: TransactionInstruction | null = null;
+  let ataCreate: TransactionInstruction | null = null;
+  for (const ix of tx.instructions) {
+    if (ix.programId.equals(ComputeBudgetProgram.programId)) {
+      if (ix.keys.length !== 0) reject("instrucción de cómputo inválida");
+      checkComputeBudget(ix, computeSeen);
+    } else if (ix.programId.equals(ASSOCIATED_TOKEN_PROGRAM_ID)) {
+      if (ataCreate) reject("solo se puede crear una cuenta de destino");
+      ataCreate = ix;
+    } else if (isTokenProgram(ix.programId)) {
+      if (transfer) reject("solo se permite una transferencia por retiro");
+      transfer = ix;
+    } else {
+      reject("programa no permitido en un retiro");
+    }
+  }
+  if (!transfer) reject("falta la transferencia del retiro");
+
+  if (transfer.data.length !== 10 || transfer.data[0] !== TOKEN_TRANSFER_CHECKED || transfer.keys.length !== 4) {
+    reject("solo se permite una transferencia de USDC");
+  }
+  const [source, mint, destination, authority] = transfer.keys.map((k) => k.pubkey);
+  if (!mint.equals(ctx.usdcMint)) reject("solo se puede retirar USDC");
+  if (transfer.data[9] !== USDC_DECIMALS) reject("decimales inválidos");
+  if (!ctx.userPubkeys.includes(authority.toBase58())) reject("la plata tiene que salir de tu cuenta");
+  if (!source.equals(associatedTokenAddress(authority, mint, transfer.programId))) {
+    reject("la plata tiene que salir de tu cuenta");
+  }
+  if (destination.equals(source)) reject("el destino es tu misma cuenta");
+  if (transfer.data.readBigUInt64LE(1) < MIN_WITHDRAW_UNITS) reject("el mínimo para retirar es 1 USDC");
+  transfer.keys.forEach((k) => {
+    if (k.pubkey.equals(ctx.feePayer)) reject("uso no permitido de la cuenta que paga");
+  });
+
+  if (ataCreate) {
+    if (ataCreate.data.length !== 1 || ataCreate.data[0] !== ATA_CREATE_IDEMPOTENT || ataCreate.keys.length !== 6) {
+      reject("solo se permite crear cuentas de saldo de forma idempotente");
+    }
+    const [, ata, owner, ataMint, system, tokenProgram] = ataCreate.keys.map((k) => k.pubkey);
+    if (!ata.equals(destination)) reject("la cuenta nueva no es la del destino");
+    if (!ataMint.equals(ctx.usdcMint)) reject("cuenta de saldo de otro token");
+    if (!system.equals(SystemProgram.programId)) reject("cuenta de sistema inválida");
+    if (!tokenProgram.equals(transfer.programId)) reject("programa de tokens inválido");
+    if (!ata.equals(associatedTokenAddress(owner, ataMint, tokenProgram))) reject("cuenta de destino inválida");
+    // Index 0 is the rent payer: the fee payer may fund it, nothing else.
+    ataCreate.keys.slice(1).forEach((k) => {
+      if (k.pubkey.equals(ctx.feePayer)) reject("uso no permitido de la cuenta que paga");
+    });
+  }
+}
+
 /** Returns the sponsored instruction names, or throws on the first broken rule. */
 export function validateSponsoredTx(tx: Transaction, ctx: SponsorContext): string[] {
   if (!tx.feePayer?.equals(ctx.feePayer)) reject("la comisión la tiene que pagar Vaultix");
@@ -147,6 +219,12 @@ export function validateSponsoredTx(tx: Transaction, ctx: SponsorContext): strin
   const feePayerEntry = tx.signatures.find((s) => s.publicKey.equals(ctx.feePayer));
   if (feePayerEntry?.signature) reject("la transacción ya viene firmada por Vaultix");
   if (!tx.verifySignatures(false)) reject("firma inválida");
+
+  // A withdrawal has its own shape and never mixes with Vaultix instructions.
+  if (tx.instructions.some((ix) => isTokenProgram(ix.programId))) {
+    validateWithdraw(tx, ctx);
+    return [WITHDRAW_USDC];
+  }
 
   // Rules 2 and 3: allowlisted programs, fee payer only in rent slots.
   const names: string[] = [];

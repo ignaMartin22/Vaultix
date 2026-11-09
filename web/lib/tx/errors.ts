@@ -64,7 +64,16 @@ export function isOrderIdCollision(err: unknown): boolean {
   return programErrorName(errorText(err)) === "AccountAlreadyInUse";
 }
 
+/** A failure whose message is already written for the user (Spanish, actionable). */
+export class UserFacingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "UserFacingError";
+  }
+}
+
 export function txErrorMessage(err: unknown): string {
+  if (err instanceof UserFacingError) return err.message;
   if (isUserRejection(err)) return "Cancelaste la operación. No se movió nada.";
   if (isVaultixError(err)) return PROGRAM_MESSAGES[err.code] ?? GENERIC;
   const name = programErrorName(errorText(err));

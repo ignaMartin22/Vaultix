@@ -457,3 +457,14 @@ it("balances are keyed by ATA", async () => {
   const config = (await mock.getConfig())!;
   expect(mock.tokenBalance(associatedTokenAddress(buyer.publicKey, config.allowedMint))).toBe(1_000_000_000n);
 });
+
+it("withdraws USDC from the owner's account to another address (signed by the owner)", async () => {
+  const destination = Keypair.generate().publicKey;
+  apply(await mock.buildWithdrawUsdcTx({ owner: buyer.publicKey, destination, amount: 2_500_000n }), buyer);
+  expect(await usdc(buyer.publicKey)).toBe(1_000_000_000n - 2_500_000n);
+  expect(await usdc(destination)).toBe(2_500_000n);
+  await expectCode(
+    async () => mock.applyTransaction(await mock.buildWithdrawUsdcTx({ owner: buyer.publicKey, destination, amount: 1n })),
+    "MissingRequiredSignature",
+  );
+});

@@ -7,7 +7,7 @@
  * is passed explicitly (`accountsStrict`): nothing is resolved behind our back.
  */
 import { BN, Program, utils, type Provider } from "@anchor-lang/core";
-import { createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
+import { createAssociatedTokenAccountIdempotentInstruction, createTransferCheckedInstruction } from "@solana/spl-token";
 import {
   clusterApiUrl,
   Connection,
@@ -20,6 +20,7 @@ import {
 
 import {
   ORDER_STATUSES,
+  USDC_DECIMALS,
   type BuildCloseOrderParams,
   type BuildConfirmReceiptParams,
   type BuildCreateOrderParams,
@@ -28,17 +29,19 @@ import {
   type BuildPayParams,
   type BuildPermissionlessParams,
   type BuildResolveDisputeParams,
+  type BuildWithdrawUsdcParams,
   type ConfigAccount,
   type OrderAccount,
   type OrderFilter,
   type OrderRecord,
   type VaultixClient,
 } from "./contract";
+import { UserFacingError } from "../tx/errors";
 import { decodeConfigAccount, decodeOrderAccount, ORDER_DISCRIMINATOR, ORDER_OFFSETS } from "./decode";
 import idl from "./idl.json";
 import { createMockVaultixClient, type MockVaultixClient } from "./mock";
 import { USE_MOCK } from "./mode";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, associatedTokenAddress, configPda, orderPda, PROGRAM_ID } from "./pdas";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, associatedTokenAddress, configPda, orderPda, PROGRAM_ID, TOKEN_PROGRAM_ID } from "./pdas";
 import type { VaultixEscrow } from "./vaultix_escrow";
 
 /** memcmp filters take base58. */
@@ -283,6 +286,25 @@ export class AnchorVaultixClient implements VaultixClient {
       })
       .instruction();
     return this.tx([ix]);
+  }
+
+  async buildWithdrawUsdcTx(p: BuildWithdrawUsdcParams): Promise<Transaction> {
+    const { mint, tokenProgram } = await this.mintInfo();
+    // A token account pasted as the destination would get an account of its
+    // own that nobody can spend from. Wallets are system accounts (or empty).
+    const info = await this.connection.getAccountInfo(p.destination, "confirmed");
+    if (info && (info.owner.equals(tokenProgram) || info.owner.equals(TOKEN_PROGRAM_ID))) {
+      throw new UserFacingError(
+        "Esa dirección es una cuenta de USDC, no la de una billetera. Pegá la dirección de la cuenta que te da la app (Lemon, Ripio, Phantom).",
+      );
+    }
+    const source = associatedTokenAddress(p.owner, mint, tokenProgram);
+    const destination = associatedTokenAddress(p.destination, mint, tokenProgram);
+    return this.tx([
+      // Vaultix pays the destination's account rent if it doesn't exist yet.
+      createAssociatedTokenAccountIdempotentInstruction(this.feePayer, destination, p.destination, mint, tokenProgram),
+      createTransferCheckedInstruction(source, mint, destination, p.owner, p.amount, USDC_DECIMALS, [], tokenProgram),
+    ]);
   }
 
   // ----- helpers -----

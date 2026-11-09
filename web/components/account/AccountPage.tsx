@@ -14,6 +14,8 @@ import { CLUSTER } from "@/lib/solana-network";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import { getVaultixClient } from "@/lib/vaultix/client";
 
+import { WithdrawForm } from "./WithdrawForm";
+
 const IS_DEVNET = CLUSTER !== "mainnet-beta";
 
 function explorerUrl(address: string): string {
@@ -117,6 +119,25 @@ export function AccountPage() {
               <ArsApprox units={balance.data} />
             </span>
           </div>
+        )}
+      </section>
+
+      <section
+        aria-labelledby="withdraw-title"
+        className="flex flex-col gap-5 rounded-2xl border border-steel/15 bg-graphite p-5 sm:p-6"
+      >
+        <div className="flex flex-col gap-1">
+          <h2 id="withdraw-title" className="font-display text-title text-bone">
+            Retirar a otra app
+          </h2>
+          <p className="text-body text-steel">
+            Mandá tus USDC a Lemon, Ripio, Phantom u otra cuenta de Solana.
+          </p>
+        </div>
+        {balance.data !== undefined ? (
+          <WithdrawForm owner={owner} balance={balance.data} />
+        ) : (
+          <p className="text-body text-steel">Cuando leamos tu saldo vas a poder retirar.</p>
         )}
       </section>
 

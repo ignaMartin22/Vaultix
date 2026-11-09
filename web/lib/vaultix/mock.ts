@@ -29,6 +29,7 @@ import {
   type BuildPayParams,
   type BuildPermissionlessParams,
   type BuildResolveDisputeParams,
+  type BuildWithdrawUsdcParams,
   type ConfigAccount,
   type OrderAccount,
   type OrderFilter,
@@ -76,7 +77,8 @@ type MockAction =
   | { ix: "refundUnshipped"; order: PublicKey }
   | { ix: "openDispute"; order: PublicKey; buyer: PublicKey }
   | { ix: "resolveDispute"; order: PublicKey; arbiter: PublicKey; buyerShareBps: number }
-  | { ix: "closeOrder"; order: PublicKey; authority: PublicKey };
+  | { ix: "closeOrder"; order: PublicKey; authority: PublicKey }
+  | { ix: "withdrawUsdc"; owner: PublicKey; destination: PublicKey; amount: bigint };
 
 type Encoded =
   | string
@@ -346,6 +348,14 @@ export class MockVaultixClient implements VaultixClient {
     ]);
   }
 
+  async buildWithdrawUsdcTx(params: BuildWithdrawUsdcParams): Promise<Transaction> {
+    return this.build({ ix: "withdrawUsdc", ...params }, [
+      { pubkey: this.ataOf(params.owner), isSigner: false, isWritable: true },
+      { pubkey: this.ataOf(params.destination), isSigner: false, isWritable: true },
+      { pubkey: params.owner, isSigner: true, isWritable: false },
+    ]);
+  }
+
   // ----- execution -----
 
   /**
@@ -434,6 +444,14 @@ export class MockVaultixClient implements VaultixClient {
         amount: action.amount,
         listingHash: action.listingHash,
       });
+      return;
+    }
+
+    if (action.ix === "withdrawUsdc") {
+      // An SPL transfer between USDC accounts; no order involved.
+      requireSigner(action.owner);
+      if (action.amount <= 0n) throw new VaultixError("InvalidAmount");
+      this.transfer(this.ataOf(action.owner), this.ataOf(action.destination), action.amount);
       return;
     }
 
