@@ -8,6 +8,7 @@
     "web:check": "pnpm --filter web lint && pnpm --filter web typecheck",
     "seed:devnet": "node --env-file-if-exists=.env --import tsx scripts/seed-devnet.ts",
     "demo:orders": "node --env-file-if-exists=.env --import tsx scripts/demo-orders.ts",
+    "set:arbiter": "node --env-file-if-exists=.env --import tsx scripts/set-arbiter.ts",
     "sync-idl": "tsx scripts/sync-idl.ts",
     "scripts:typecheck": "tsc -p scripts",
     "helius:webhook": "node --env-file-if-exists=.env --import tsx scripts/register-helius-webhook.ts"
