@@ -9,7 +9,7 @@ import type { AuthUser } from "./auth";
 import { need, serverEnv } from "./env";
 import { ApiError } from "./errors";
 import { supabaseAdmin } from "./supabase";
-import { WITHDRAW_DAILY_LIMIT, WITHDRAW_USDC } from "../withdraw";
+import { WITHDRAW_DAILY_LIMIT, WITHDRAW_USDC, withdrawUsageKey } from "../withdraw";
 import { decodeTransaction, validateSponsoredTx } from "./sponsor-validate";
 
 /** Circle's devnet USDC, when `NEXT_PUBLIC_USDC_MINT` is unset. */
@@ -66,7 +66,7 @@ export function createSponsor(deps: SponsorDeps) {
     if (count > deps.dailyLimit) throw new ApiError("rate_limited");
     if (names.includes(WITHDRAW_USDC)) {
       // Withdrawals also have their own, tighter count (same table, own key).
-      const withdrawals = await deps.incrementUsage(`withdraw:${user.privyUserId}`, utcDay(deps.now?.()));
+      const withdrawals = await deps.incrementUsage(withdrawUsageKey(user.privyUserId), utcDay(deps.now?.()));
       const limit = deps.withdrawDailyLimit ?? WITHDRAW_DAILY_LIMIT;
       if (withdrawals > limit) {
         throw new ApiError("rate_limited", `Podés hacer hasta ${limit} retiros por día. Probá de nuevo mañana.`);

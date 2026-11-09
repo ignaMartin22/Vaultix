@@ -21,6 +21,22 @@ export const MIN_WITHDRAW_UNITS = 10n ** BigInt(USDC_DECIMALS);
 /** Sponsored withdrawals per user per UTC day, on top of the general daily limit. */
 export const WITHDRAW_DAILY_LIMIT = 3;
 
+/** `sponsor_usage` key of a user's withdrawal count (same table as the general one). */
+export function withdrawUsageKey(privyUserId: string): string {
+  return `withdraw:${privyUserId}`;
+}
+
+/** What `GET /api/me/withdrawals` returns. Attempts count even if they fail (anti-abuse). */
+export interface WithdrawalsToday {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+export function withdrawalsToday(used: number, limit: number = WITHDRAW_DAILY_LIMIT): WithdrawalsToday {
+  return { used, limit, remaining: Math.max(0, limit - used) };
+}
+
 const AMOUNT_ERRORS: Record<AmountParseError["reason"], string> = {
   empty: "Poné cuánto querés retirar.",
   invalid: "Escribí el monto con números, por ejemplo 10,50.",

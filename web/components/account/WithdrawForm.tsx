@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import type { PublicKey } from "@solana/web3.js";
 import { useState, type FormEvent } from "react";
 
@@ -7,13 +8,15 @@ import { TxButton } from "@/components/TxButton";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { formatAmount, formatUsdc } from "@/lib/amounts";
+import { useSession } from "@/lib/auth/session";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import {
   MIN_WITHDRAW_UNITS,
-  WITHDRAW_DAILY_LIMIT,
   validateWithdrawAmount,
   validateWithdrawDestination,
+  type WithdrawalsToday,
 } from "@/lib/withdraw";
+import { getWithdrawalsToday, withdrawalsTodayKey } from "@/lib/withdraw-client";
 
 export interface WithdrawFormProps {
   owner: PublicKey;
@@ -27,11 +30,54 @@ interface Pending {
 }
 
 /**
+ * Today's sponsored withdrawals, as the sponsor counts them: one mark per
+ * allowed withdrawal, lit while still available. The UTC day the counter uses
+ * starts at 21:00 in Argentina (UTC−3, no daylight saving).
+ */
+function WithdrawalsLeft({ usage }: { usage: WithdrawalsToday | undefined }) {
+  if (!usage)
+    return <p className="text-body text-steel">Revisando cuántos retiros te quedan hoy…</p>;
+  const { remaining, limit } = usage;
+  return (
+    <div className="flex flex-col gap-2" aria-live="polite">
+      <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="flex gap-1.5">
+          {Array.from({ length: limit }, (_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 w-6 rounded-full transition-colors duration-500 ${
+                i < remaining
+                  ? "bg-[linear-gradient(90deg,var(--ion-blue),var(--ultra-violet))]"
+                  : "bg-steel/25"
+              }`}
+            />
+          ))}
+        </span>
+        <span className="text-body text-bone">
+          {remaining === 0
+            ? `Ya usaste los ${limit} retiros de hoy.`
+            : `Te ${remaining === 1 ? "queda" : "quedan"} ${remaining} de ${limit} retiros hoy.`}
+        </span>
+      </div>
+      <span className="text-label text-steel">
+        Se renuevan todos los días a las 21:00 (hora de Argentina).
+      </span>
+    </div>
+  );
+}
+
+/**
  * Send USDC to another app (Lemon, Ripio, Phantom). Two steps: what and where,
  * then a review that says exactly what will happen, because it can't be undone.
  * Vaultix pays the network fee (owner decision, option A).
  */
 export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
+  const session = useSession();
+  const usage = useQuery({
+    queryKey: withdrawalsTodayKey,
+    queryFn: () => getWithdrawalsToday(session.getAccessToken),
+  });
+  const noneLeft = usage.data?.remaining === 0;
   const [destinationText, setDestinationText] = useState("");
   const [amountText, setAmountText] = useState("");
   const [touched, setTouched] = useState(false);
@@ -55,9 +101,14 @@ export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
     setTouched(false);
   }
 
+  if (noneLeft && !pending) {
+    return <WithdrawalsLeft usage={usage.data} />;
+  }
+
   if (pending) {
     return (
       <div className="flex flex-col gap-5">
+        <WithdrawalsLeft usage={usage.data} />
         <dl className="flex flex-col">
           <div className="flex items-baseline justify-between gap-4 border-t border-steel/15 py-3">
             <dt className="text-steel">Mandás</dt>
@@ -87,7 +138,7 @@ export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
             label={`Retirá ${formatUsdc(pending.amount)}`}
             signer={owner}
             successMessage={`Listo: mandaste ${formatUsdc(pending.amount)}.`}
-            invalidate={[vaultixKeys.balance(owner.toBase58())]}
+            invalidate={[vaultixKeys.balance(owner.toBase58()), withdrawalsTodayKey]}
             build={(client) =>
               client.buildWithdrawUsdcTx({
                 owner,
@@ -107,6 +158,7 @@ export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
 
   return (
     <form onSubmit={review} className="flex flex-col gap-5" noValidate>
+      <WithdrawalsLeft usage={usage.data} />
       <Field
         label="Dirección de destino"
         placeholder="La dirección de Solana de tu otra app"
@@ -127,7 +179,7 @@ export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
           value={amountText}
           onChange={(e) => setAmountText(e.target.value)}
           error={touched ? amount.error : undefined}
-          hint={`Mínimo ${formatUsdc(MIN_WITHDRAW_UNITS)}. Hasta ${WITHDRAW_DAILY_LIMIT} retiros por día.`}
+          hint={`Mínimo ${formatUsdc(MIN_WITHDRAW_UNITS)}.`}
           className="font-mono tabular-nums"
           autoComplete="off"
           onSurface
@@ -136,9 +188,13 @@ export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
           type="button"
           onClick={() => setAmountText(formatAmount(balance))}
           disabled={tooLittle}
-          className="link min-h-11 self-start text-body disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 self-start rounded-full border border-steel/30 bg-vault-black px-4 text-body text-bone transition-colors hover:border-bone disabled:pointer-events-none disabled:opacity-50"
         >
-          Retirar todo ({formatUsdc(balance)})
+          Usar todo
+          <span aria-hidden="true" className="text-steel">
+            ·
+          </span>
+          <span className="font-mono tabular-nums">{formatUsdc(balance)}</span>
         </button>
       </div>
       <Button type="submit" fullWidth disabled={tooLittle}>
