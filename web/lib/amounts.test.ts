@@ -75,9 +75,9 @@ describe("usdcToArs / formatArsApprox", () => {
   it("converts at the quote and rounds to whole pesos", () => {
     expect(usdcToArs(120_500_000n, 1205.8)).toBe(145_299n);
     expect(usdcToArs(1_000_000n, 1210.5)).toBe(1_211n);
-    expect(formatArsApprox(145_300n)).toBe("≈ $ 145.300");
-    expect(formatArsApprox(1_234_567n)).toBe("≈ $ 1.234.567");
-    expect(formatArsApprox(999n)).toBe("≈ $ 999");
+    expect(formatArsApprox(145_300n)).toBe("≈ ARS 145.300");
+    expect(formatArsApprox(1_234_567n)).toBe("≈ ARS 1.234.567");
+    expect(formatArsApprox(999n)).toBe("≈ ARS 999");
   });
 
   it("rejects an invalid quote", () => {

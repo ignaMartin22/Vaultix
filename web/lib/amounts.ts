@@ -70,8 +70,9 @@ export function usdcToArs(units: bigint, arsPerUsdc: number): bigint {
   return (units * rate + denominator / 2n) / denominator;
 }
 
-/** "≈ $ 145.300" (es-AR grouping, no decimals). */
+/** "≈ ARS 145.300" (es-AR grouping, no decimals). */
 export function formatArsApprox(pesos: bigint): string {
   const grouped = pesos.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `≈ $ ${grouped}`;
+  // Same shape as "USDC 120.00": currency code first, so pesos never read as dollars.
+  return `≈ ARS ${grouped}`;
 }
