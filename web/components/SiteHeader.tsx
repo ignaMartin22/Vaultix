@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { Logo } from "@/components/Logo";
+import { Logo, LogoIsotype } from "@/components/Logo";
 
+// `short` fits three links on a 320–375 px phone; from sm the full label shows.
 const NAV = [
-  { href: "/sell", label: "Vender" },
-  { href: "/orders", label: "Mis operaciones" },
+  { href: "/sell", label: "Vender", short: "Vender" },
+  { href: "/orders", label: "Mis operaciones", short: "Operaciones" },
+  { href: "/account", label: "Tu cuenta", short: "Cuenta" },
 ] as const;
 
 const LIGHT = "bg-[linear-gradient(90deg,var(--ion-blue),var(--ultra-violet),var(--plasma))]";
@@ -28,8 +30,9 @@ export function SiteHeader() {
           aria-label="Vaultix, inicio"
           className="-m-2 rounded-lg p-2 opacity-90 transition-opacity duration-200 hover:opacity-100"
         >
-          <span className="flex sm:hidden">
-            <Logo fontSize={22} />
+          {/* Phones: the isotype alone (05 §2: isotype for small spaces), so three links fit. */}
+          <span className="flex text-bone sm:hidden">
+            <LogoIsotype size={32} />
           </span>
           <span className="hidden sm:flex">
             <Logo fontSize={28} />
@@ -37,14 +40,14 @@ export function SiteHeader() {
         </Link>
         <nav aria-label="Principal">
           <ul className="flex items-center gap-0 sm:gap-2">
-            {NAV.map(({ href, label }) => {
+            {NAV.map(({ href, label, short }) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <li key={href}>
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex h-11 items-center gap-2 rounded-lg px-2 text-body transition-colors duration-200 sm:px-3 ${
+                    className={`group relative flex h-11 items-center gap-2 rounded-lg px-1.5 text-body transition-colors duration-200 sm:px-3 ${
                       active ? "text-bone" : "text-steel hover:bg-graphite/70 hover:text-bone"
                     }`}
                   >
@@ -52,11 +55,12 @@ export function SiteHeader() {
                     {active ? (
                       <span
                         aria-hidden="true"
-                        className={`size-1.5 rotate-45 animate-[vault-fade_300ms_ease-out] ${LIGHT}`}
+                        className={`hidden size-1.5 rotate-45 animate-[vault-fade_300ms_ease-out] sm:block ${LIGHT}`}
                       />
                     ) : null}
                     <span className="relative">
-                      {label}
+                      <span className="sm:hidden">{short}</span>
+                      <span className="hidden sm:inline">{label}</span>
                       {/* Light right under the word: grows from the center on hover, stays lit when active. */}
                       <span
                         aria-hidden="true"
