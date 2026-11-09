@@ -11,6 +11,8 @@ import { useSignTransaction, useWallets } from "@privy-io/react-auth/solana";
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
+import { PRIVY_SOLANA_CHAIN } from "@/lib/solana-network";
+
 import { pickSolanaAddress, type LinkedWallet } from "./pick-account";
 
 export interface Session {
@@ -60,6 +62,9 @@ export function PrivySessionProvider({ children }: { children: ReactNode }) {
         const { signedTransaction } = await signTransaction({
           transaction: tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
           wallet,
+          chain: PRIVY_SOLANA_CHAIN,
+          // Same as the global setting, per call so the dashboard can't turn it back on.
+          options: { uiOptions: { showWalletUIs: false } },
         });
         return Transaction.from(signedTransaction);
       },

@@ -36,7 +36,13 @@ export async function runTx(
   for (let attempt = 1; ; attempt++) {
     try {
       onPhase("signing");
-      const signed = await steps.sign(await steps.build());
+      const built = await steps.build();
+      const signed = await steps.sign(built);
+      // A wallet that signs over the wire (Privy) hands back a transaction
+      // rebuilt from bytes, which drops `lastValidBlockHeight`. Without it the
+      // confirmation reports "expired" for a transaction that did land, and
+      // the retry then collides with the account it already created.
+      if (signed.lastValidBlockHeight === undefined) signed.lastValidBlockHeight = built.lastValidBlockHeight;
       onPhase("sending");
       const signature = await steps.send(signed);
       onPhase("confirming");

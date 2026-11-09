@@ -60,6 +60,18 @@ describe("runTx", () => {
     expect(phases.at(-1)).toBe("failed");
   });
 
+  it("keeps lastValidBlockHeight when the wallet returns a transaction rebuilt from bytes", async () => {
+    const built = tx();
+    built.lastValidBlockHeight = 1234;
+    // What Privy does: sign over the wire and hand back Transaction.from(bytes).
+    const sign = vi.fn(async (t: Transaction) =>
+      Transaction.from(t.serialize({ requireAllSignatures: false, verifySignatures: false })),
+    );
+    const confirm = vi.fn<TxSteps["confirm"]>(async () => {});
+    await runTx(steps({ build: vi.fn(async () => built), sign, confirm }), () => {});
+    expect(confirm.mock.calls[0][1].lastValidBlockHeight).toBe(1234);
+  });
+
   it("does not retry other failures", async () => {
     const s = steps({ sign: vi.fn(async () => Promise.reject(new Error("User rejected the request"))) });
     await expect(runTx(s, () => {})).rejects.toThrow(/rejected/);
