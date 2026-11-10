@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { activeDeadline, deadlineState, formatRemaining } from "./deadlines";
+import { activeDeadline, deadlineState, formatRemaining, nextCrankRun } from "./deadlines";
 import { DEFAULT_PROTOCOL, type OrderStatus } from "./vaultix/contract";
 
 const T0 = 1_750_000_000n;
@@ -69,5 +69,18 @@ describe("formatDeadline", () => {
     expect(text).toMatch(/jueves/);
     expect(text).toMatch(/12\/11/);
     expect(text).toMatch(/14:30/);
+  });
+});
+
+describe("nextCrankRun", () => {
+  const at = (iso: string) => BigInt(Date.parse(iso) / 1000);
+
+  it("is the next 09:00 UTC after the deadline", () => {
+    expect(nextCrankRun(at("2026-11-12T14:30:00Z"))).toBe(at("2026-11-13T09:00:00Z"));
+    expect(nextCrankRun(at("2026-11-12T03:00:00Z"))).toBe(at("2026-11-12T09:00:00Z"));
+  });
+
+  it("skips a run exactly at the deadline, which the program still rejects", () => {
+    expect(nextCrankRun(at("2026-11-12T09:00:00Z"))).toBe(at("2026-11-13T09:00:00Z"));
   });
 });

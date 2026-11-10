@@ -5,7 +5,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import { TxButton } from "@/components/TxButton";
 import { useSession } from "@/lib/auth/session";
-import { activeDeadline } from "@/lib/deadlines";
+import { activeDeadline, formatDeadline, nextCrankRun } from "@/lib/deadlines";
 import { formatUsdc } from "@/lib/amounts";
 import { computeReleaseSplit } from "@/lib/fees";
 import { getBuyerAddress, getShipment } from "@/lib/order-client";
@@ -80,6 +80,14 @@ export function SellerActions({ orderPda, order }: { orderPda: string; order: Or
             <Deadline at={deadline.at}>
               {(d) => (expired ? `Ya podés cobrar: el plazo de reclamo venció (${d}).` : `Tu pago se libera el ${d}, o antes si el comprador confirma.`)}
             </Deadline>
+          ) : null}
+          {deadline ? (
+            <p>
+              {expired
+                ? "Cobralo con el botón de abajo. Si no lo hacés, te lo acreditamos solos"
+                : "Desde ese momento lo cobrás con un botón acá. Si no lo hacés, te lo acreditamos solos"}{" "}
+              a partir del <span className="text-bone">{formatDeadline(nextCrankRun(deadline.at))}</span>.
+            </p>
           ) : null}
           <p>
             Vas a recibir <span className="font-mono text-bone">{formatUsdc(sellerNet)}</span>.

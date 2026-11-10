@@ -97,3 +97,21 @@ export function formatShortDate(at: bigint): string {
   const parts = Object.fromEntries(SHORT_FORMAT.formatToParts(new Date(Number(at) * 1000)).map((p) => [p.type, p.value]));
   return `${parts.day}/${parts.month}`;
 }
+
+/**
+ * Hour (UTC) the daily crank runs: `vercel.json` schedules `/api/cron/crank`
+ * at "0 9 * * *" (06:00 in Argentina). Keep both in sync.
+ */
+export const CRANK_UTC_HOUR = 9;
+
+/**
+ * First crank run after the deadline `at` (unix seconds): when a release or
+ * refund nobody claimed happens on its own. `now > at` is the program's
+ * boundary, so a run exactly at `at` is too early and the next day's counts.
+ */
+export function nextCrankRun(at: bigint): bigint {
+  const day = 86_400n;
+  const offset = BigInt(CRANK_UTC_HOUR) * 3_600n;
+  const sameDay = ((at - offset) / day) * day + offset;
+  return sameDay > at ? sameDay : sameDay + day;
+}
