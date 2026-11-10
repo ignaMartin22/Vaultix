@@ -8,7 +8,7 @@ import { TxButton } from "@/components/TxButton";
 import { Button } from "@/components/ui/Button";
 import { formatUsdc } from "@/lib/amounts";
 import { useSession } from "@/lib/auth/session";
-import { activeDeadline, deadlineState, nowSecs } from "@/lib/deadlines";
+import { activeDeadline } from "@/lib/deadlines";
 import { getShipment } from "@/lib/order-client";
 import { CARRIER_LABELS, CARRIER_SITES } from "@/lib/tracking";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
@@ -18,13 +18,14 @@ import { Deadline } from "./Deadline";
 import { DisputeSheet } from "./DisputeSheet";
 import { Evidence } from "./EvidenceSheet";
 import { FactBlock, StateNote } from "./StateNote";
+import { useExpired } from "./useExpired";
 
 /** Buyer side after payment (03 §5.3): wait, confirm, complain, or get the refund once due. */
 export function BuyerActions({ orderPda, order }: { orderPda: string; order: OrderAccount }) {
   const session = useSession();
   const [disputeOpen, setDisputeOpen] = useState(false);
   const deadline = activeDeadline(order);
-  const expired = deadline ? deadlineState(deadline.at, nowSecs()).expired : false;
+  const expired = useExpired(deadline?.at);
   const pda = new PublicKey(orderPda);
   const balanceKey = session.pubkey ? [vaultixKeys.balance(session.pubkey.toBase58())] : [];
 
@@ -69,6 +70,7 @@ export function BuyerActions({ orderPda, order }: { orderPda: string; order: Ord
               {(d) => (expired ? `Venció el plazo para reclamar (${d}).` : `Podés reclamar hasta el ${d}. Después el pago se libera solo.`)}
             </Deadline>
           ) : null}
+          {expired ? <p>Ya no se puede abrir un reclamo: el pago queda para el vendedor.</p> : null}
           <FactBlock label="Seguimiento">
             {shipment.data ? (
               <>

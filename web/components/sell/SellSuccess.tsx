@@ -58,13 +58,18 @@ export function SellSuccess({ link, title, amount, photoUrl, onCreateAnother }: 
           </Button>
         </div>
 
-        <div className="flex flex-col gap-1 border-t border-steel/15 pt-6 sm:flex-row sm:gap-6">
-          <ButtonLink href={new URL(link).pathname} variant="ghost" className="sm:-ml-5">
-            Ver cómo lo ve tu comprador
-          </ButtonLink>
-          <Button variant="ghost" onClick={onCreateAnother}>
-            Crear otro link
-          </Button>
+        <div className="flex flex-col gap-4 border-t border-steel/15 pt-6">
+          <p className="text-body text-steel">
+            Ahí ves si ya te pagaron y qué tenés que hacer después. También lo encontrás en Mis operaciones.
+          </p>
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
+            <ButtonLink href={new URL(link).pathname} variant="secondary">
+              Seguí el estado del link
+            </ButtonLink>
+            <Button variant="ghost" onClick={onCreateAnother}>
+              Crear otro link
+            </Button>
+          </div>
         </div>
       </div>
 

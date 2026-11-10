@@ -5,7 +5,7 @@ import { PublicKey } from "@solana/web3.js";
 
 import { TxButton } from "@/components/TxButton";
 import { useSession } from "@/lib/auth/session";
-import { activeDeadline, deadlineState, nowSecs } from "@/lib/deadlines";
+import { activeDeadline } from "@/lib/deadlines";
 import { formatUsdc } from "@/lib/amounts";
 import { computeReleaseSplit } from "@/lib/fees";
 import { getBuyerAddress, getShipment } from "@/lib/order-client";
@@ -17,12 +17,13 @@ import { Deadline } from "./Deadline";
 import { Evidence } from "./EvidenceSheet";
 import { ShipForm } from "./ShipForm";
 import { FactBlock, StateNote } from "./StateNote";
+import { useExpired } from "./useExpired";
 
 /** Seller side after payment (03 §5.3): ship, wait for release, or release once it's due. */
 export function SellerActions({ orderPda, order }: { orderPda: string; order: OrderAccount }) {
   const session = useSession();
   const deadline = activeDeadline(order);
-  const expired = deadline ? deadlineState(deadline.at, nowSecs()).expired : false;
+  const expired = useExpired(deadline?.at);
   const { sellerNet } = computeReleaseSplit(order.amount, order.feeBps);
 
   const address = useQuery({
