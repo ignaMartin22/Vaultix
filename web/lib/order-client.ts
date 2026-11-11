@@ -5,6 +5,7 @@
  */
 import { apiFetch, ApiClientError, type GetAccessToken } from "./api";
 import { mockShippingAddress, type ShippingAddress } from "./listings-client";
+import { outcomeFromJson, type ClosedOutcome, type ClosedOutcomeJson } from "./order-outcome";
 import type { Carrier } from "./tracking";
 import { USE_MOCK } from "./vaultix/mode";
 
@@ -143,4 +144,12 @@ export async function addEvidence(
     const put = await fetch(res.upload.signedUrl, { method: "PUT", body: form, headers: { "x-upsert": "false" } });
     if (!put.ok) throw new Error(`Evidence upload failed (${put.status})`);
   }
+}
+
+/** How a closed order ended (from indexed events); null if it never reached a final status. */
+export async function getClosedOutcome(pda: string): Promise<ClosedOutcome | null> {
+  // The mock never closes final orders, so there's nothing to rebuild.
+  if (USE_MOCK) return null;
+  const res = await orNull(apiFetch<ClosedOutcomeJson>(path(pda, "outcome")));
+  return res ? outcomeFromJson(res) : null;
 }

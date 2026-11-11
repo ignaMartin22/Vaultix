@@ -21,6 +21,17 @@ function deps(overrides: Partial<MyOrdersDeps> = {}): MyOrdersDeps {
         ["P1", { title: "Bici", amountUnits: "320000000", photoPath: null }],
       ]),
     publicPhotoUrl: (p) => `https://cdn/${p}`,
+    events: async () =>
+      new Map([
+        [
+          "P1",
+          [
+            { type: "OrderCreated", payload: { seller: "X", amount: "320000000", listing_hash: "ab" }, slot: 1, index: 0 },
+            { type: "OrderPaid", payload: { buyer: "EXT" }, slot: 2, index: 0 },
+            { type: "OrderRefunded", payload: { buyer_amount: "320000000" }, slot: 3, index: 0 },
+          ],
+        ],
+      ]),
     ...overrides,
   };
 }
@@ -37,10 +48,19 @@ describe("GET /api/me/orders", () => {
       amountUnits: "45000000",
       photoUrl: "https://cdn/l1/1.jpg",
       at: "2026-11-01T10:00:00.000Z",
+      endedAs: null,
     });
     expect(res.sales[0]).toMatchObject({ title: null, amountUnits: null, photoUrl: null });
     expect(res.purchases).toEqual([
-      { orderPda: "P1", role: "buyer", title: "Bici", amountUnits: "320000000", photoUrl: null, at: "2026-11-02T10:00:00.000Z" },
+      {
+        orderPda: "P1",
+        role: "buyer",
+        title: "Bici",
+        amountUnits: "320000000",
+        photoUrl: null,
+        at: "2026-11-02T10:00:00.000Z",
+        endedAs: "Refunded",
+      },
     ]);
     expect(res.sales[0]).not.toHaveProperty("status");
   });

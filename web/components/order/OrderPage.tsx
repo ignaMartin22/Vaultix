@@ -9,7 +9,10 @@ import { Button, ButtonAnchor, ButtonLink } from "@/components/ui/Button";
 import { ErrorNote, Loading } from "@/components/ui/Feedback";
 import { useToast } from "@/components/ui/Toast";
 import { useSession } from "@/lib/auth/session";
-import { getListingByOrder, listingMatchesOrder } from "@/lib/listings-client";
+import { computeReleaseSplit } from "@/lib/fees";
+import { getListingByOrder, listingMatchesOrder, type PublicListing } from "@/lib/listings-client";
+import { getClosedOutcome } from "@/lib/order-client";
+import type { ClosedOutcome } from "@/lib/order-outcome";
 import { LIVE_POLL_MS } from "@/lib/order-status";
 import { whatsappUrl } from "@/lib/sell";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
@@ -47,13 +50,13 @@ function AfterPayment({
   isBuyer: boolean;
 }) {
   if (FINAL_STATUSES.includes(order.status)) {
-    return (
-      <OutcomeCard
-        order={order}
-        role={isSeller ? "seller" : isBuyer ? "buyer" : "other"}
-        resolution={order.status === "Resolved" ? resolutionOf(orderPda) : null}
-      />
-    );
+    const role = isSeller ? "seller" : isBuyer ? "buyer" : "other";
+    if (order.status === "Released") {
+      const { sellerNet, fee } = computeReleaseSplit(order.amount, order.feeBps);
+      return <OutcomeCard role={role} status="Released" sellerAmount={sellerNet} fee={fee} />;
+    }
+    if (order.status === "Refunded") return <OutcomeCard role={role} status="Refunded" buyerAmount={order.amount} />;
+    return <OutcomeCard role={role} status="Resolved" resolution={resolutionOf(orderPda)} />;
   }
   if (isSeller) return <SellerActions orderPda={orderPda} order={order} />;
   if (isBuyer) return <BuyerActions orderPda={orderPda} order={order} />;
@@ -74,6 +77,46 @@ function Unavailable() {
       <ButtonLink href="/" variant="secondary">
         Ir al inicio
       </ButtonLink>
+    </div>
+  );
+}
+
+/** A finished order whose account the crank already closed: the product and how it ended. */
+function ClosedOrder({ orderPda, listing, outcome }: { orderPda: string; listing: PublicListing; outcome: ClosedOutcome }) {
+  const session = useSession();
+  const me = session.pubkey?.toBase58();
+  const role = me === outcome.seller ? "seller" : me !== undefined && me === outcome.buyer ? "buyer" : "other";
+  const hasPhotos = listing.listing.photoUrls.length > 0;
+  return (
+    <div
+      className={`grid gap-8 ${hasPhotos ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)] lg:gap-16" : "mx-auto w-full max-w-xl"}`}
+    >
+      {hasPhotos ? (
+        <div className="flex flex-col gap-10">
+          <OrderGallery listing={listing} />
+          <div className="hidden lg:block">
+            <OrderAbout listing={listing} />
+          </div>
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-8">
+        <OrderSummary orderPda={orderPda} listing={listing} status={outcome.status} amount={outcome.amount} />
+        <OrderTrack status={outcome.status} />
+        <div className={hasPhotos ? "lg:hidden" : ""}>
+          <OrderAbout listing={listing} />
+        </div>
+        {outcome.status === "Released" ? (
+          <OutcomeCard role={role} status="Released" sellerAmount={outcome.sellerAmount} fee={outcome.fee} />
+        ) : outcome.status === "Refunded" ? (
+          <OutcomeCard role={role} status="Refunded" buyerAmount={outcome.buyerAmount} />
+        ) : (
+          <OutcomeCard
+            role={role}
+            status="Resolved"
+            resolution={{ buyerAmount: outcome.buyerAmount, sellerAmount: outcome.sellerAmount, fee: outcome.fee }}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -112,10 +155,29 @@ export function OrderPage() {
     },
   });
 
+  // The daily crank closes finished orders to recover their rent: once the account
+  // is gone, rebuild how it ended from the indexed events.
+  const closed = useQuery({
+    queryKey: ["closed-outcome", orderId],
+    queryFn: () => getClosedOutcome(orderId),
+    enabled: valid && order.data === null && !!listing.data,
+  });
+
   if (!valid) return <Unavailable />;
   if (listing.isPending || order.isPending) return <Loading label="Abriendo el link…" className="py-10" />;
   if (listing.isError || order.isError) {
     return <ErrorNote className="py-10">No pudimos cargar este link. Probá de nuevo en un rato.</ErrorNote>;
+  }
+  if (listing.data && order.data === null) {
+    if (closed.isPending) return <Loading label="Abriendo el link…" className="py-10" />;
+    if (closed.isError) {
+      return <ErrorNote className="py-10">No pudimos cargar este link. Probá de nuevo en un rato.</ErrorNote>;
+    }
+    // Same rule as a live order: show the product only if it's the one this order committed to.
+    if (closed.data && closed.data.listingHash === listing.data.listing.listingHash) {
+      return <ClosedOrder orderPda={orderId} listing={listing.data} outcome={closed.data} />;
+    }
+    return <Unavailable />;
   }
   if (!listing.data || !order.data) return <Unavailable />;
   // The product shown must be the one this order commits to. A seller can close a

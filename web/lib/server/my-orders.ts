@@ -3,6 +3,7 @@
  * purchases from indexed events plus the product from `listings`. No status:
  * the web reads it on-chain in one batch (`getMultipleAccountsInfo`).
  */
+import { outcomeFromEvents, type FinalStatus, type HistoryEvent } from "../order-outcome";
 import type { AuthUser } from "./auth";
 import { PHOTOS_BUCKET } from "./listings";
 import { supabaseAdmin } from "./supabase";
@@ -20,6 +21,8 @@ export interface MyOrder {
   amountUnits: string | null;
   photoUrl: string | null;
   at: string | null;
+  /** How it ended, from the events: lets the list show it once the crank closed the account. */
+  endedAs: FinalStatus | null;
 }
 
 export interface MyOrdersDeps {
@@ -29,6 +32,8 @@ export interface MyOrdersDeps {
   purchases(pubkeys: string[]): Promise<EventRef[]>;
   listings(orderPdas: string[]): Promise<Map<string, { title: string; amountUnits: string; photoPath: string | null }>>;
   publicPhotoUrl(path: string): string;
+  /** Every indexed event of these orders. */
+  events(orderPdas: string[]): Promise<Map<string, HistoryEvent[]>>;
 }
 
 const newestFirst = (a: MyOrder, b: MyOrder) => (b.at ?? "").localeCompare(a.at ?? "");
@@ -37,7 +42,8 @@ export function createMyOrders(deps: MyOrdersDeps) {
   return async function myOrders(user: AuthUser): Promise<{ sales: MyOrder[]; purchases: MyOrder[] }> {
     const [sales, purchases] = await Promise.all([deps.sales(user.solanaPubkeys), deps.purchases(user.solanaPubkeys)]);
     const pdas = [...new Set([...sales, ...purchases].map((e) => e.orderPda))];
-    const listings = pdas.length > 0 ? await deps.listings(pdas) : new Map();
+    const [listings, events] =
+      pdas.length > 0 ? await Promise.all([deps.listings(pdas), deps.events(pdas)]) : [new Map(), new Map()];
 
     const toOrder = (role: MyOrder["role"]) => (e: EventRef): MyOrder => {
       const l = listings.get(e.orderPda);
@@ -48,6 +54,7 @@ export function createMyOrders(deps: MyOrdersDeps) {
         amountUnits: l?.amountUnits ?? null,
         photoUrl: l?.photoPath ? deps.publicPhotoUrl(l.photoPath) : null,
         at: e.at,
+        endedAs: outcomeFromEvents(events.get(e.orderPda) ?? [])?.status ?? null,
       };
     };
     // One row per order even if an event was indexed twice under different signatures.
@@ -92,6 +99,26 @@ function defaultDeps(): MyOrdersDeps {
       );
     },
     publicPhotoUrl: (path) => db.storage.from(PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl,
+    async events(pdas) {
+      const { data, error } = await db
+        .from("order_events")
+        .select("order_pda, event_type, payload, slot, event_index")
+        .in("order_pda", pdas)
+        .limit(2000);
+      if (error) fail("order_events by order", error);
+      const out = new Map<string, HistoryEvent[]>();
+      for (const r of data ?? []) {
+        const list = out.get(r.order_pda) ?? [];
+        list.push({
+          type: r.event_type,
+          payload: (r.payload ?? {}) as Record<string, unknown>,
+          slot: r.slot,
+          index: r.event_index,
+        });
+        out.set(r.order_pda, list);
+      }
+      return out;
+    },
   };
 }
 

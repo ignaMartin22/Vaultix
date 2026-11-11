@@ -1,6 +1,4 @@
 import { formatUsdc } from "@/lib/amounts";
-import { computeReleaseSplit } from "@/lib/fees";
-import type { OrderAccount } from "@/lib/vaultix/contract";
 
 import { StateNote } from "./StateNote";
 
@@ -11,12 +9,16 @@ export interface Resolution {
   fee: bigint;
 }
 
-export interface OutcomeCardProps {
-  order: OrderAccount;
-  role: "buyer" | "seller" | "other";
-  /** From the DisputeResolved event, when we have it (mock now, indexed events later). */
-  resolution?: Resolution | null;
-}
+/**
+ * What each side got. Built from the live order, or from the indexed events
+ * once the crank closed its account (`lib/order-outcome.ts`).
+ */
+export type OutcomeCardProps = { role: "buyer" | "seller" | "other" } & (
+  | { status: "Released"; sellerAmount: bigint; fee: bigint }
+  | { status: "Refunded"; buyerAmount: bigint }
+  /** From the DisputeResolved event, when we have it. */
+  | { status: "Resolved"; resolution: Resolution | null }
+);
 
 /** One row of the final breakdown: who got what, amount in mono. */
 function Line({ label, amount, muted }: { label: string; amount: bigint; muted?: boolean }) {
@@ -28,10 +30,9 @@ function Line({ label, amount, muted }: { label: string; amount: bigint; muted?:
   );
 }
 
-export function OutcomeCard({ order, role, resolution }: OutcomeCardProps) {
-  const { sellerNet, fee } = computeReleaseSplit(order.amount, order.feeBps);
-
-  switch (order.status) {
+export function OutcomeCard(props: OutcomeCardProps) {
+  const { role } = props;
+  switch (props.status) {
     case "Released":
       return (
         <StateNote title="Pago liberado.">
@@ -39,8 +40,8 @@ export function OutcomeCard({ order, role, resolution }: OutcomeCardProps) {
             {role === "seller" ? "Cobraste. La operación está cerrada." : "El vendedor cobró. La compra está cerrada."}
           </p>
           <dl className="mt-2">
-            <Line label={role === "seller" ? "Cobraste" : "Cobró el vendedor"} amount={sellerNet} />
-            <Line label="Comisión" amount={fee} muted />
+            <Line label={role === "seller" ? "Cobraste" : "Cobró el vendedor"} amount={props.sellerAmount} />
+            <Line label="Comisión" amount={props.fee} muted />
           </dl>
         </StateNote>
       );
@@ -53,11 +54,12 @@ export function OutcomeCard({ order, role, resolution }: OutcomeCardProps) {
               : "El comprador recibió todo de vuelta porque no se despachó a tiempo."}
           </p>
           <dl className="mt-2">
-            <Line label={role === "buyer" ? "Te devolvimos" : "Recibió el comprador"} amount={order.amount} />
+            <Line label={role === "buyer" ? "Te devolvimos" : "Recibió el comprador"} amount={props.buyerAmount} />
           </dl>
         </StateNote>
       );
-    default:
+    case "Resolved": {
+      const { resolution } = props;
       return (
         <StateNote title="Reclamo resuelto.">
           {resolution ? (
@@ -74,5 +76,6 @@ export function OutcomeCard({ order, role, resolution }: OutcomeCardProps) {
           )}
         </StateNote>
       );
+    }
   }
 }

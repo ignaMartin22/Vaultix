@@ -8,6 +8,7 @@ import { PublicKey } from "@solana/web3.js";
 import { apiFetch, type GetAccessToken } from "./api";
 import { getListingByOrder } from "./listings-client";
 import { AnchorVaultixClient, getVaultixClient, isMockClient } from "./vaultix/client";
+import type { FinalStatus } from "./order-outcome";
 import type { OrderAccount } from "./vaultix/contract";
 
 export interface MyOrder {
@@ -17,6 +18,8 @@ export interface MyOrder {
   amountUnits: string | null;
   photoUrl: string | null;
   at: string | null;
+  /** How it ended (from indexed events), for orders whose account is already closed. */
+  endedAs: FinalStatus | null;
 }
 
 export interface MyOrders {
@@ -38,6 +41,8 @@ export async function getMyOrders(owner: PublicKey, getAccessToken: GetAccessTok
       amountUnits: account.amount.toString(),
       photoUrl: listing?.listing.photoUrls[0] ?? null,
       at: new Date(Number(account.createdAt) * 1000).toISOString(),
+      // The mock never closes final orders: the live status is always there.
+      endedAs: null,
     };
   };
   const byDate = (a: MyOrder, b: MyOrder) => (b.at ?? "").localeCompare(a.at ?? "");

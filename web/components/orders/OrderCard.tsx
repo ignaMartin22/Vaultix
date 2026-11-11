@@ -21,7 +21,9 @@ export interface OrderCardProps {
  * or the deadline), status and amount. Rows, not cards: it's a ledger.
  */
 export function OrderCard({ item, order, step }: OrderCardProps) {
-  const tone = order ? statusDisplay(order.status).color : null;
+  // Once the crank closes a finished order, its status comes from the events.
+  const status = order ? order.status : order === null ? item.endedAs : null;
+  const tone = status ? statusDisplay(status).color : null;
   const amount = order?.amount ?? (item.amountUnits ? BigInt(item.amountUnits) : null);
   return (
     <Link
@@ -42,15 +44,15 @@ export function OrderCard({ item, order, step }: OrderCardProps) {
             aria-hidden="true"
             className={`flex size-full items-center justify-center rounded-xl border bg-graphite ${tone ? STATUS_EDGE[tone] : "border-steel/15 text-steel/30"}`}
           >
-            {order ? <StatusIcon status={order.status} className="size-6" /> : <LogoIsotype size={24} />}
+            {status ? <StatusIcon status={status} className="size-6" /> : <LogoIsotype size={24} />}
           </div>
         )}
-        {item.photoUrl && order ? (
+        {item.photoUrl && status ? (
           <span
             aria-hidden="true"
             className={`absolute -bottom-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full border bg-vault-black ${STATUS_EDGE[tone!]}`}
           >
-            <StatusIcon status={order.status} className="size-3.5" />
+            <StatusIcon status={status} className="size-3.5" />
           </span>
         ) : null}
       </div>
@@ -79,7 +81,7 @@ export function OrderCard({ item, order, step }: OrderCardProps) {
         {amount !== null ? formatUsdc(amount) : "—"}
       </span>
       <span className="col-span-2 col-start-2 row-start-2 sm:col-span-1 sm:col-start-3 sm:row-start-1">
-        {order ? <StatusBadge status={order.status} /> : null}
+        {status ? <StatusBadge status={status} /> : null}
       </span>
     </Link>
   );
