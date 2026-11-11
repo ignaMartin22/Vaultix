@@ -74,6 +74,28 @@ const HOLDERS: { key: Holder; label: string; sr: string }[] = [
   { key: "seller", label: "Vendedor", sr: "La plata la tiene el vendedor." },
 ];
 
+/** How to get USDC into a Vaultix account, for someone who never held any. */
+const TOP_UP: { title: string; detail: string }[] = [
+  {
+    title: "Entrá a Vaultix.",
+    detail: "Con tu email o Google. Te creamos la cuenta y tu dirección para recibir USDC.",
+  },
+  {
+    title: "Comprá USDC.",
+    detail: "En Lemon, Ripio u otra app, con pesos. Es como comprar dólares.",
+  },
+  {
+    title: "Mandalos a tu dirección.",
+    detail: "En Cuenta la copiás o escaneás el QR. En la app elegí la red Solana.",
+  },
+  {
+    title: "Listo para pagar.",
+    detail: "En unos segundos el saldo aparece en tu cuenta.",
+  },
+];
+
+const isDevnet = (process.env.NEXT_PUBLIC_SOLANA_CLUSTER || "devnet") !== "mainnet-beta";
+
 const RULES = {
   buyer: [
     "Pagás y la plata queda en bóveda. Al vendedor no le llega todavía.",
@@ -252,6 +274,58 @@ export default function Home() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Before the chat: a buyer who has never held USDC needs to know how to get some. */}
+      <section aria-labelledby="topup-title" className="border-b border-steel/10">
+        <div className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <div className="flex flex-col gap-4">
+            <h2
+              id="topup-title"
+              className="max-w-2xl font-display text-display text-bone text-balance lg:text-display-lg"
+            >
+              Cargá tu cuenta en cuatro pasos.
+            </h2>
+            <p className="max-w-xl text-subtitle text-steel text-pretty">
+              Para pagar con Vaultix necesitás USDC en tu cuenta. Si nunca compraste, se hace en
+              unos minutos.
+            </p>
+          </div>
+          <ol className="mt-12 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-4">
+            {TOP_UP.map((step, i) => (
+              <li key={step.title} className="flex flex-col gap-2 border-t border-steel/15 py-5">
+                <span className="font-mono text-label text-steel">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="text-body font-medium text-bone text-pretty">{step.title}</span>
+                <span className="text-body text-steel text-pretty">{step.detail}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <p className="max-w-xl border-l-2 border-plasma/70 pl-4 text-body text-bone text-pretty">
+              Elegí siempre la red <strong>Solana</strong>. Si los mandás por otra red, no llegan a
+              tu cuenta y se pueden perder.
+            </p>
+            <ButtonLink href="/account" variant="secondary">
+              Ver mi dirección
+            </ButtonLink>
+          </div>
+          {isDevnet ? (
+            <p className="mt-6 text-label text-steel">
+              Modo prueba: pedí USDC gratis en el{" "}
+              <a
+                href="https://faucet.circle.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link"
+              >
+                faucet de Circle
+              </a>{" "}
+              (red Solana Devnet) y mandalos a tu dirección.
+            </p>
+          ) : null}
         </div>
       </section>
 
