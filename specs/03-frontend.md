@@ -106,7 +106,7 @@ Formulario de un solo paso:
 | Descripción | ≤ 1000 caracteres |
 | Precio en USDC | > 0 y ≤ `max_order_amount` (leído de Config); muestra ≈ ARS en vivo |
 
-Resumen antes de crear: comisión (1,5%) y monto que vas a recibir, plazo de despacho (5 días desde el pago) y plazo de reclamo (10 días desde el despacho), todos leídos de Config.
+Resumen antes de crear: comisión (1,5%) y monto que vas a recibir, plazo de despacho (5 días desde el pago) y plazo de reclamo (7 días desde el despacho), todos leídos de Config.
 
 Al enviar: flujo `01-arquitectura.md` §5.2. Al terminar, pantalla de éxito con:
 - el link `/p/<orderPda>`,

@@ -190,7 +190,7 @@ Viven en la cuenta `Config` (se pueden cambiar con `update_config`) y **se copia
 | `fee_bps` (comisión) | 150 (1,5%) | ≤ `MAX_FEE_BPS` = 500 |
 | `dispute_deposit_bps` | 500 (5%) | ≤ `MAX_DISPUTE_DEPOSIT_BPS` = 2000 |
 | `ship_deadline_secs` | 5 días (432 000) | > 0 |
-| `claim_window_secs` | 10 días desde `mark_shipped` (864 000) | > 0 |
+| `claim_window_secs` | 7 días desde `mark_shipped` (604 800) | > 0 |
 | `max_order_amount` | 500 USDC (500 000 000 unidades) | > 0 |
 
 ## 9. Fuera del MVP

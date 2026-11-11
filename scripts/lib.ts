@@ -19,7 +19,7 @@ export const PROTOCOL_DEFAULTS = {
   feeBps: 150,
   disputeDepositBps: 500,
   shipDeadlineSecs: 432_000n,
-  claimWindowSecs: 864_000n,
+  claimWindowSecs: 604_800n,
   maxOrderAmount: 500n * ONE_USDC,
 } as const;
 

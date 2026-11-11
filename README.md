@@ -149,7 +149,7 @@ El fraude del comprador no se elimina, pero se vuelve caro y poco rentable. Se c
 - **Producto final:** el tracking será obligatorio para marcar "enviado" y el backend consultará su estado.
 - Si el correo indica **"entregado"**, idealmente con firma o DNI, por defecto gana el vendedor.
 - El vendedor tiene **5 días desde el pago** para despachar. Si no lo hace, el comprador recupera el 100%.
-- El comprador tiene **10 días desde que se marca el envío** para confirmar o reclamar (cubre el viaje + 48–72 hs). El programa no sabe cuándo se entregó, así que el plazo corre desde el despacho. Si nadie reclama, el pago se libera solo.
+- El comprador tiene **7 días desde que se marca el envío** para confirmar o reclamar (cubre el viaje dentro del país + 48–72 hs para revisarlo). Antes eran 10: se acortó para que el vendedor cobre antes; si el comprador confirma, cobra al instante. El programa no sabe cuándo se entregó, así que el plazo corre desde el despacho. Si nadie reclama, el pago se libera solo.
 - Para ventas de valor alto: retiro en sucursal con DNI o envío con seguro.
 
 ### 2. Reglas por tipo de reclamo
@@ -269,12 +269,26 @@ Todas verificables on-chain o desde el backend:
 
 **Cuándo.** Después de mainnet-beta: necesita plata real para probarse bien.
 
+### Plazo de reclamo desde la entrega
+
+**Problema.** El plazo de reclamo (7 días) corre desde el despacho, porque el programa no sabe cuándo llegó el paquete. Tiene que cubrir el peor viaje, así que el vendedor espera más de lo necesario cuando el envío llega rápido, y un envío muy lento puede dejar al comprador sin tiempo para revisar.
+
+**Idea.** Con el seguimiento obligatorio y consultado a la API del correo, el backend conoce la fecha real de entrega. El plazo pasa a ser **3 días desde la entrega**: el vendedor cobra antes y el comprador siempre tiene tiempo de revisar lo que recibió.
+
+**Qué hace falta.**
+
+- Seguimiento obligatorio para marcar "enviado" e integración con las APIs de los correos (Andreani, OCA, Correo Argentino).
+- Una forma confiable de llevar la entrega al programa. Por ejemplo, un oráculo o una firma del backend que registre "entregado", con un plazo máximo desde el despacho como respaldo si el correo nunca informa la entrega.
+- Un cambio en el programa: un estado o campo nuevo para la entrega y la ventana que corre desde ahí.
+
+**Cuándo.** Junto con el tracking obligatorio, después de mainnet-beta.
+
 ## Preguntas abiertas
 
 Resueltas en el grilleo del 2026-11-04 (detalle en `specs/`):
 
 - [x] Proveedor de cuenta embebida: **Privy**.
-- [x] Plazos: **5 días** para despachar desde el pago y **10 días** para reclamar desde el despacho.
+- [x] Plazos: **5 días** para despachar desde el pago y **7 días** para reclamar desde el despacho (antes 10).
 - [x] Comisión **1,5%** y depósito de disputa **5%**.
 - [x] Tope por orden en devnet: **500 USDC** (configurable).
 - [x] RPC: **Helius** (plan gratis).

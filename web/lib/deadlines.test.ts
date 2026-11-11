@@ -24,7 +24,7 @@ describe("activeDeadline", () => {
   it("Shipped: claim window from shipped_at", () => {
     expect(activeDeadline(order("Shipped"))).toEqual({
       kind: "claim",
-      at: T0 + 2n * HOUR + 864_000n,
+      at: T0 + 2n * HOUR + 604_800n,
     });
   });
 
