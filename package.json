@@ -11,7 +11,8 @@
     "set:arbiter": "node --env-file-if-exists=.env --import tsx scripts/set-arbiter.ts",
     "sync-idl": "tsx scripts/sync-idl.ts",
     "scripts:typecheck": "tsc -p scripts",
-    "helius:webhook": "node --env-file-if-exists=.env --import tsx scripts/register-helius-webhook.ts"
+    "helius:webhook": "node --env-file-if-exists=.env --import tsx scripts/register-helius-webhook.ts",
+    "helius:backfill": "node --env-file-if-exists=.env --import tsx scripts/backfill-events.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "1.2.2",
