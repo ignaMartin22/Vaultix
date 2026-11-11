@@ -9,6 +9,7 @@ import { useSession } from "@/lib/auth/session";
 import { nowSecs } from "@/lib/deadlines";
 import { getMyOrders, getStatuses } from "@/lib/my-orders-client";
 import { nextStep } from "@/lib/next-step";
+import { LIVE_POLL_MS } from "@/lib/order-status";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 
 import { OrderCard } from "./OrderCard";
@@ -31,6 +32,8 @@ export function OrdersPage() {
     queryKey: ["my-orders", owner?.toBase58()],
     queryFn: () => getMyOrders(owner!, session.getAccessToken),
     enabled: !!owner,
+    // New sales and purchases appear on their own (the list comes from the indexer).
+    refetchInterval: LIVE_POLL_MS * 2,
   });
   const items = list.data ? [...list.data.sales, ...list.data.purchases] : [];
   const pdas = [...new Set(items.map((i) => i.orderPda))];
@@ -38,6 +41,7 @@ export function OrdersPage() {
     queryKey: [...vaultixKeys.orders, "batch", pdas],
     queryFn: () => getStatuses(pdas),
     enabled: pdas.length > 0,
+    refetchInterval: LIVE_POLL_MS * 2,
   });
 
   if (!session.ready) return <Loading />;

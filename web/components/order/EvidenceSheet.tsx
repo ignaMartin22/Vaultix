@@ -11,6 +11,7 @@ import { ApiClientError } from "@/lib/api";
 import { useSession } from "@/lib/auth/session";
 import { shortAddress } from "@/lib/format";
 import { addEvidence, listEvidence } from "@/lib/order-client";
+import { LIVE_POLL_MS } from "@/lib/order-status";
 
 const MAX_BYTES = 50 * 1024 * 1024;
 const TYPES = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"];
@@ -29,6 +30,8 @@ export function Evidence({ orderPda, sellerPubkey }: { orderPda: string; sellerP
   const items = useQuery({
     queryKey: key,
     queryFn: () => listEvidence(orderPda, session.getAccessToken),
+    // The other side uploads from their own phone: show it without reloading.
+    refetchInterval: LIVE_POLL_MS * 2,
   });
 
   async function submit() {

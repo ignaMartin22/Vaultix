@@ -10,6 +10,7 @@ import { ErrorNote, Loading } from "@/components/ui/Feedback";
 import { useToast } from "@/components/ui/Toast";
 import { useSession } from "@/lib/auth/session";
 import { getListingByOrder, listingMatchesOrder } from "@/lib/listings-client";
+import { LIVE_POLL_MS } from "@/lib/order-status";
 import { whatsappUrl } from "@/lib/sell";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import { getVaultixClient, isMockClient } from "@/lib/vaultix/client";
@@ -102,6 +103,13 @@ export function OrderPage() {
     queryKey: vaultixKeys.order(orderId),
     queryFn: () => getVaultixClient().getOrder(new PublicKey(orderId)),
     enabled: valid,
+    // The other side acts on their own phone: keep re-reading the vault until the
+    // order settles, so a payment, a dispatch or a release shows without reloading.
+    // React Query pauses this while the tab is in the background.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status && !FINAL_STATUSES.includes(status) ? LIVE_POLL_MS : false;
+    },
   });
 
   if (!valid) return <Unavailable />;

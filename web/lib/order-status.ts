@@ -4,6 +4,9 @@
  */
 import { ORDER_STATUSES, type OrderStatus } from "./vaultix/contract";
 
+/** How often an open order page re-reads the vault, so both sides see the other's moves. */
+export const LIVE_POLL_MS = 5_000;
+
 export type StatusColorToken = "steel" | "ultra-violet" | "ion-blue" | "plasma" | "released";
 
 export interface StatusDisplay {

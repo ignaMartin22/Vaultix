@@ -5,11 +5,12 @@ import { PublicKey } from "@solana/web3.js";
 import { useState } from "react";
 
 import { TxButton } from "@/components/TxButton";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonAnchor } from "@/components/ui/Button";
 import { formatUsdc } from "@/lib/amounts";
 import { useSession } from "@/lib/auth/session";
 import { activeDeadline } from "@/lib/deadlines";
 import { getShipment } from "@/lib/order-client";
+import { LIVE_POLL_MS } from "@/lib/order-status";
 import { CARRIER_LABELS, CARRIER_SITES } from "@/lib/tracking";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import type { OrderAccount } from "@/lib/vaultix/contract";
@@ -33,6 +34,8 @@ export function BuyerActions({ orderPda, order }: { orderPda: string; order: Ord
     queryKey: ["shipment", orderPda],
     queryFn: () => getShipment(orderPda, session.getAccessToken),
     enabled: order.status === "Shipped" || order.status === "Disputed",
+    // Saved right after the dispatch transaction: until it shows up, look again.
+    refetchInterval: (query) => (query.state.data ? false : LIVE_POLL_MS),
   });
 
   if (order.status === "Paid") {
@@ -79,9 +82,28 @@ export function BuyerActions({ orderPda, order }: { orderPda: string; order: Ord
                   <span className="font-mono">{shipment.data.trackingNumber}</span>
                 </span>
                 {site ? (
-                  <a href={site} target="_blank" rel="noopener noreferrer" className="link self-start">
+                  <ButtonAnchor
+                    href={site}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary"
+                    className="mt-2 self-start"
+                  >
                     Seguilo en {CARRIER_LABELS[shipment.data.carrier]}
-                  </a>
+                    <svg
+                      viewBox="0 0 16 16"
+                      aria-hidden="true"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="size-4"
+                    >
+                      <path d="M6 3.5H3.5v9h9V10M9 3.5h3.5V7M12.5 3.5L7 9" />
+                    </svg>
+                    <span className="sr-only">(se abre en otra pestaña)</span>
+                  </ButtonAnchor>
                 ) : null}
               </>
             ) : (
