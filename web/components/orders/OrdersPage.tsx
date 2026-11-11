@@ -46,7 +46,7 @@ export function OrdersPage() {
         <PageIntro eyebrow="Tu cuenta" title="Mis operaciones">
           Entrá para ver tus links, tus compras y qué te toca hacer en cada una.
         </PageIntro>
-        <Button onClick={session.login}>Entrá con tu email o Google</Button>
+        <Button onClick={session.login}>Entrá con tu email, Google o Phantom</Button>
       </div>
     );
   }
