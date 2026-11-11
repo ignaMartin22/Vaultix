@@ -24,6 +24,7 @@ import { getVaultixClient } from "@/lib/vaultix/client";
 
 import { SellForm, type SellFormValues } from "./SellForm";
 import { SellSuccess } from "./SellSuccess";
+import { LoginHint } from "@/components/LoginHint";
 
 type Step = "form" | "draft" | "photos" | "tx" | "activate" | "done";
 
@@ -130,9 +131,12 @@ export function SellFlow() {
     return (
       <div className="flex max-w-xl flex-col gap-8">
         <PageIntro eyebrow="Vender" title="Creá tu link de pago">
-          Tu comprador paga y la plata queda en bóveda hasta que le llega. Para empezar, entrá con tu email o Google.
+          Tu comprador paga y la plata queda en bóveda hasta que le llega. Para empezar, entrá con tu email, Google o Phantom.
         </PageIntro>
-        <Button onClick={session.login}>Entrá para crear tu link</Button>
+        <div className="flex flex-col gap-3">
+          <Button onClick={session.login}>Entrá para crear tu link</Button>
+          <LoginHint />
+        </div>
       </div>
     );
   }

@@ -15,6 +15,7 @@ import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import { getVaultixClient } from "@/lib/vaultix/client";
 
 import { WithdrawForm } from "./WithdrawForm";
+import { LoginHint } from "@/components/LoginHint";
 
 const IS_DEVNET = CLUSTER !== "mainnet-beta";
 
@@ -76,7 +77,10 @@ export function AccountPage() {
             Entrá para ver tu saldo y la dirección donde recibís tus cobros.
           </p>
         </header>
-        <Button onClick={session.login}>Entrá con tu email, Google o Phantom</Button>
+        <div className="flex flex-col gap-3">
+          <Button onClick={session.login}>Entrá con tu email, Google o Phantom</Button>
+          <LoginHint />
+        </div>
       </div>
     );
   }

@@ -12,6 +12,7 @@ import { nextStep } from "@/lib/next-step";
 import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 
 import { OrderCard } from "./OrderCard";
+import { LoginHint } from "@/components/LoginHint";
 
 type Tab = "sales" | "purchases";
 
@@ -46,7 +47,10 @@ export function OrdersPage() {
         <PageIntro eyebrow="Tu cuenta" title="Mis operaciones">
           Entrá para ver tus links, tus compras y qué te toca hacer en cada una.
         </PageIntro>
-        <Button onClick={session.login}>Entrá con tu email, Google o Phantom</Button>
+        <div className="flex flex-col gap-3">
+          <Button onClick={session.login}>Entrá con tu email, Google o Phantom</Button>
+          <LoginHint />
+        </div>
       </div>
     );
   }

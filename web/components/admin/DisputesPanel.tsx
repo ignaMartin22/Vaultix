@@ -14,6 +14,7 @@ import { vaultixKeys } from "@/lib/tx/useVaultixTx";
 import { getVaultixClient, isMockClient } from "@/lib/vaultix/client";
 
 import { DisputeDetail } from "./DisputeDetail";
+import { LoginHint } from "@/components/LoginHint";
 
 /** `/admin/disputes` (03 §5.6): only for `config.arbiter`; anyone else gets a 404. */
 export function DisputesPanel() {
@@ -37,7 +38,10 @@ export function DisputesPanel() {
         <PageIntro eyebrow="Árbitro" title="Reclamos">
           Entrá con tu cuenta para continuar.
         </PageIntro>
-        <Button onClick={session.login}>Entrar</Button>
+        <div className="flex flex-col gap-3">
+          <Button onClick={session.login}>Entrar</Button>
+          <LoginHint />
+        </div>
       </div>
     );
   }
