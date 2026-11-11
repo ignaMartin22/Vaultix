@@ -2,9 +2,11 @@ import Link from "next/link";
 
 import { LogoIsotype } from "@/components/Logo";
 import { StatusBadge } from "@/components/StatusBadge";
+import { STATUS_EDGE, StatusIcon } from "@/components/StatusIcon";
 import { formatUsdc } from "@/lib/amounts";
 import type { MyOrder } from "@/lib/my-orders-client";
 import type { NextStep } from "@/lib/next-step";
+import { statusDisplay } from "@/lib/order-status";
 import type { OrderAccount } from "@/lib/vaultix/contract";
 
 export interface OrderCardProps {
@@ -19,20 +21,39 @@ export interface OrderCardProps {
  * or the deadline), status and amount. Rows, not cards: it's a ledger.
  */
 export function OrderCard({ item, order, step }: OrderCardProps) {
+  const tone = order ? statusDisplay(order.status).color : null;
   const amount = order?.amount ?? (item.amountUnits ? BigInt(item.amountUnits) : null);
   return (
     <Link
       href={`/p/${item.orderPda}`}
       className="group grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-4 py-4 transition-colors hover:bg-graphite focus-visible:outline-offset-[-2px] sm:grid-cols-[4rem_minmax(0,1fr)_9rem_8rem] sm:px-5"
     >
-      {item.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- listing cover, size unknown
-        <img src={item.photoUrl} alt="" className="col-start-1 row-span-2 row-start-1 size-14 rounded-xl bg-graphite object-cover sm:row-span-1 sm:size-16" />
-      ) : (
-        <div className="col-start-1 row-span-2 row-start-1 flex size-14 items-center justify-center rounded-xl bg-graphite text-steel/30 sm:row-span-1 sm:size-16" aria-hidden="true">
-          <LogoIsotype size={24} />
-        </div>
-      )}
+      {/* The photo carries the vault's state: a colored edge and its glyph in the corner. */}
+      <div className="relative col-start-1 row-span-2 row-start-1 size-14 sm:row-span-1 sm:size-16">
+        {item.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- listing cover, size unknown
+          <img
+            src={item.photoUrl}
+            alt=""
+            className={`size-full rounded-xl border bg-graphite object-cover ${tone ? STATUS_EDGE[tone] : "border-steel/15"}`}
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className={`flex size-full items-center justify-center rounded-xl border bg-graphite ${tone ? STATUS_EDGE[tone] : "border-steel/15 text-steel/30"}`}
+          >
+            {order ? <StatusIcon status={order.status} className="size-6" /> : <LogoIsotype size={24} />}
+          </div>
+        )}
+        {item.photoUrl && order ? (
+          <span
+            aria-hidden="true"
+            className={`absolute -bottom-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full border bg-vault-black ${STATUS_EDGE[tone!]}`}
+          >
+            <StatusIcon status={order.status} className="size-3.5" />
+          </span>
+        ) : null}
+      </div>
 
       <div className="col-start-2 row-start-1 flex min-w-0 flex-col gap-1">
         <span className="truncate text-body font-medium text-bone">{item.title ?? "Producto"}</span>
