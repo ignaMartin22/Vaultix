@@ -82,7 +82,7 @@ const TOP_UP: { title: string; detail: string }[] = [
   },
   {
     title: "Comprá USDC.",
-    detail: "En Lemon, Ripio u otra app, con pesos. Es como comprar dólares.",
+    detail: "En Bitso u otra app que envíe USDC por la red Solana, con pesos. Es como comprar dólares.",
   },
   {
     title: "Mandalos a tu dirección.",
@@ -265,7 +265,7 @@ export default function Home() {
             <div className="flex max-w-2xl flex-col gap-3 text-body text-bone text-pretty">
               <p>
                 Se paga en USDC, dólares digitales: 1 USDC vale cerca de 1 dólar. Si no tenés, los
-                cargás desde apps como Lemon o Ripio.
+                cargás desde apps como Bitso: fijate que envíe USDC por la red Solana.
               </p>
               <p>
                 Si hay un problema, el comprador abre un reclamo, las dos partes suben pruebas y

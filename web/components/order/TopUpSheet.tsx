@@ -74,7 +74,7 @@ export function TopUpSheet({ open, onClose, owner, needed, onEnough }: TopUpShee
     <Sheet open={open} onClose={onClose} title={`Te faltan ${formatUsdc(missing)}`}>
       <div className="flex flex-col gap-4">
         <p className="text-body text-steel">
-          Mandá USDC a tu cuenta por la red <strong className="text-bone">Solana</strong> desde Lemon, Ripio u otra app.
+          Mandá USDC a tu cuenta por la red <strong className="text-bone">Solana</strong> desde Bitso u otra app que los envíe por esa red.
           Apenas lleguen, seguimos solos.
         </p>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-stretch">

@@ -295,7 +295,7 @@ export class AnchorVaultixClient implements VaultixClient {
     const info = await this.connection.getAccountInfo(p.destination, "confirmed");
     if (info && (info.owner.equals(tokenProgram) || info.owner.equals(TOKEN_PROGRAM_ID))) {
       throw new UserFacingError(
-        "Esa dirección es una cuenta de USDC, no la de una billetera. Pegá la dirección de la cuenta que te da la app (Lemon, Ripio, Phantom).",
+        "Esa dirección es una cuenta de USDC, no la de una billetera. Pegá la dirección de la cuenta que te da la app (Bitso, Phantom).",
       );
     }
     const source = associatedTokenAddress(p.owner, mint, tokenProgram);

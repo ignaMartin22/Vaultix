@@ -67,7 +67,7 @@ function WithdrawalsLeft({ usage }: { usage: WithdrawalsToday | undefined }) {
 }
 
 /**
- * Send USDC to another app (Lemon, Ripio, Phantom). Two steps: what and where,
+ * Send USDC to another app (Bitso, Phantom). Two steps: what and where,
  * then a review that says exactly what will happen, because it can't be undone.
  * Vaultix pays the network fee (owner decision, option A).
  */
@@ -165,7 +165,7 @@ export function WithdrawForm({ owner, balance }: WithdrawFormProps) {
         value={destinationText}
         onChange={(e) => setDestinationText(e.target.value)}
         error={touched ? destination.error : undefined}
-        hint="En Lemon, Ripio o Phantom: Recibir → USDC → red Solana."
+        hint="En Bitso o Phantom: Recibir → USDC → red Solana."
         className="font-mono"
         autoComplete="off"
         spellCheck={false}

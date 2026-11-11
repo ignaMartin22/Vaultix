@@ -173,7 +173,7 @@ export function AccountPage() {
             Retirar a otra app
           </h2>
           <p className="text-body text-steel">
-            Mandá tus USDC a Lemon, Ripio, Phantom u otra cuenta de Solana.
+            Mandá tus USDC a Bitso, Phantom u otra cuenta que los reciba por la red Solana.
           </p>
         </div>
         {balance.data !== undefined ? (
