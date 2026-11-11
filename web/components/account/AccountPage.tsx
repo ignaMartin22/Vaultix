@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 
@@ -28,6 +28,8 @@ function explorerUrl(address: string): string {
  */
 export function AccountPage() {
   const session = useSession();
+  const queryClient = useQueryClient();
+  const [leaving, setLeaving] = useState(false);
   const toast = useToast();
   const owner = session.pubkey;
   const address = owner?.toBase58() ?? "";
@@ -74,7 +76,7 @@ export function AccountPage() {
             Entrá para ver tu saldo y la dirección donde recibís tus cobros.
           </p>
         </header>
-        <Button onClick={session.login}>Entrá con tu email o Google</Button>
+        <Button onClick={session.login}>Entrá con tu email, Google o Phantom</Button>
       </div>
     );
   }
@@ -236,6 +238,34 @@ export function AccountPage() {
             pierde.
           </span>
         </p>
+      </section>
+
+      <section
+        aria-labelledby="session-title"
+        className="flex flex-col gap-4 border-t border-steel/15 pt-6 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex flex-col gap-1">
+          <h2 id="session-title" className="text-body text-bone">
+            ¿Querés entrar con otra cuenta?
+          </h2>
+          <p className="text-body text-steel">Tu plata queda donde está. Volvés a entrar cuando quieras.</p>
+        </div>
+        <Button
+          variant="secondary"
+          disabled={leaving}
+          onClick={async () => {
+            setLeaving(true);
+            try {
+              await session.logout();
+              // The next account must not see this one's balance or orders.
+              queryClient.clear();
+            } finally {
+              setLeaving(false);
+            }
+          }}
+        >
+          {leaving ? "Cerrando sesión…" : "Cerrar sesión"}
+        </Button>
       </section>
     </div>
   );
