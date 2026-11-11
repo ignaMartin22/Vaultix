@@ -89,6 +89,20 @@ export function AccountPage() {
     <div className="flex flex-col gap-10">
       <header className="flex flex-col gap-3">
         <h1 className="font-display text-display text-bone lg:text-display-lg">Tu cuenta</h1>
+        {session.identity ? (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-body">
+            <span className="inline-flex items-center gap-2 rounded-md border border-steel/30 bg-graphite px-2 py-1 font-mono text-label uppercase text-bone">
+              <span aria-hidden="true" className="size-1.5 rotate-45 bg-ion-blue" />
+              {session.identity.methodLabel}
+            </span>
+            <span className="sr-only">Entraste con {session.identity.methodLabel}:</span>
+            <span
+              className={`min-w-0 break-all text-bone ${session.identity.method === "wallet" ? "font-mono" : ""}`}
+            >
+              {session.identity.handle}
+            </span>
+          </p>
+        ) : null}
         <p className="max-w-xl text-subtitle text-steel text-pretty">
           Lo que cobrás por tus ventas llega acá. También podés recibir USDC desde otra app.
         </p>

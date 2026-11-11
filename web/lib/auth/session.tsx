@@ -13,6 +13,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { PRIVY_SOLANA_CHAIN } from "@/lib/solana-network";
 
+import { describeIdentity, type Identity, type LinkedAccount } from "./identity";
 import { pickSolanaAddress, type LinkedWallet } from "./pick-account";
 
 export interface Session {
@@ -26,6 +27,8 @@ export interface Session {
   getAccessToken(): Promise<string | null>;
   /** Adds the user's signature, leaving other slots (the fee payer) empty. */
   signTransaction(tx: Transaction): Promise<Transaction>;
+  /** How they signed in (Google, email, Phantom…); null when unknown or signed out. */
+  identity?: Identity | null;
   /** True for the local test session (no Privy). */
   mock: boolean;
   /** Mock only: swaps between two test accounts, to play seller and buyer in one tab. */
@@ -48,11 +51,16 @@ export function PrivySessionProvider({ children }: { children: ReactNode }) {
   const { signTransaction } = useSignTransaction();
 
   const address = pickSolanaAddress((user?.linkedAccounts ?? []) as LinkedWallet[]);
+  const identity = useMemo(
+    () => (authenticated ? describeIdentity((user?.linkedAccounts ?? []) as LinkedAccount[]) : null),
+    [authenticated, user],
+  );
   const session = useMemo<Session>(
     () => ({
       ready,
       authenticated,
       pubkey: address ? new PublicKey(address) : null,
+      identity,
       login: () => login(),
       logout,
       getAccessToken,
@@ -70,7 +78,7 @@ export function PrivySessionProvider({ children }: { children: ReactNode }) {
       },
       mock: false,
     }),
-    [ready, authenticated, address, login, logout, getAccessToken, wallets, signTransaction],
+    [ready, authenticated, address, identity, login, logout, getAccessToken, wallets, signTransaction],
   );
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
