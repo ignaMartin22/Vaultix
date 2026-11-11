@@ -201,5 +201,6 @@ Viven en la cuenta `Config` (se pueden cambiar con `update_config`) y **se copia
 - Bloqueo de compradores por reputación.
 - Perfil público y dashboard de métricas públicas.
 - On-ramp integrado (compra con tarjeta).
+- Carga de saldo desde otras redes (Stellar, Base, Polygon…) vía CCTP de Circle: la bóveda sigue en Solana. Detalle en el roadmap del `README.md`.
 - E2E automatizado (el E2E es manual, el día 5).
 - Slugs cortos de link (`/p/k3n9x` como en el manual): en el MVP el link usa la pubkey de la PDA.

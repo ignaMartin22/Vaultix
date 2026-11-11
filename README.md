@@ -245,6 +245,30 @@ Todas verificables on-chain o desde el backend:
 | Bugs en el programa con fondos reales | Todo el desarrollo en devnet, tests exhaustivos y **tope bajo por orden** en mainnet |
 | Upgrade authority del programa | En mainnet, guardarla en una wallet aparte (idealmente multisig) |
 
+## Roadmap
+
+### Cargar saldo desde cualquier red
+
+**Problema.** Vaultix solo recibe USDC por la red Solana, y no todas las apps lo envían por ahí. Lemon, por ejemplo, usa Stellar. Quien tiene USDC en otra red no puede cargar saldo sin pasar antes por otra app.
+
+**Idea.** La bóveda sigue en Solana y solo la carga de saldo acepta otras redes (Stellar, Base, Polygon, Arbitrum…):
+
+1. En "Cargá saldo" el usuario elige la red que le ofrece su app.
+2. Vaultix le muestra una dirección suya en esa red.
+3. Cuando llega el depósito, Vaultix lo pasa a Solana con **CCTP**, el protocolo de Circle que quema el USDC en la red de origen y emite la misma cantidad en Solana. Es USDC oficial en las dos puntas, sin puentes de terceros ni USDC "envuelto".
+4. El saldo aparece en la cuenta, en general en segundos o pocos minutos.
+
+**Qué hace falta.**
+
+- Una dirección por red para cada usuario. Privy ya crea cuentas en redes EVM; Stellar está por confirmar.
+- Detectar depósitos en cada red, como hace Helius en Solana.
+- Disparar el paso a Solana y pagar la comisión de red en el origen, como hoy el fee payer paga la de Solana.
+- Evaluar servicios que ya dan "direcciones de depósito en cualquier red" antes de construirlo de cero.
+
+**Fuera de esta idea.** Bóvedas en varias redes, con un contrato por red: multiplica el contrato, las auditorías y los casos de reclamo a cambio de poco.
+
+**Cuándo.** Después de mainnet-beta: necesita plata real para probarse bien.
+
 ## Preguntas abiertas
 
 Resueltas en el grilleo del 2026-11-04 (detalle en `specs/`):
