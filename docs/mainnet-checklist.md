@@ -6,10 +6,9 @@ Plan sugerido: una **beta con tope bajo** (50–100 USDC por orden), con pocos v
 
 ## 1. Contrato: cambios antes de desplegar
 
-- [ ] **Cerrar las cuentas al terminar una orden.** Hoy solo `close_order` (un link `Created` sin pagar) devuelve el rent al fee payer. Las órdenes que terminan en `Released`, `Refunded` o `Resolved` dejan abiertas la cuenta de la orden y su vault, así que el SOL del rent queda trabado. En mainnet, por cada orden, eso puede costar más que la comisión. Hay que cerrar las dos cuentas en `release`, `confirm_receipt`, `refund_unshipped` y `resolve_dispute`, y mandar el rent a `rent_payer`. Antes, decidir si el historial se puede leer solo de `order_events`, porque la cuenta deja de existir.
 - [ ] **Restringir `initialize_config`** a la upgrade authority del programa. Hoy cualquiera puede llamarla primero y quedar como admin (Preguntas abiertas del `README.md`).
 - [ ] **Plazo máximo para resolver una disputa**, con un resultado por defecto (reembolso o 50/50) si el árbitro no decide. Hoy, si el árbitro no resuelve, la plata queda trabada en `Disputed`.
-- [ ] Tests nuevos para los tres puntos (`cargo test -p vaultix_escrow`) y clippy limpio.
+- [ ] Tests nuevos para los dos puntos (`cargo test -p vaultix_escrow`) y clippy limpio.
 - [ ] Repetir la revisión de `specs/program-review.md` sobre el código final.
 - [ ] **Auditoría externa**, o al menos una revisión de alguien de afuera del equipo, antes de subir el tope.
 
@@ -67,7 +66,8 @@ Plan sugerido: una **beta con tope bajo** (50–100 USDC por orden), con pocos v
 ## 7. Pruebas en mainnet antes de abrir
 
 - [ ] El ciclo completo con montos chicos (1–2 USDC): crear, pagar, despachar, confirmar y cobrar.
-- [ ] Cancelar un link y verificar que el rent vuelve al fee payer.
+- [ ] Cancelar un link y verificar que el rent vuelve al fee payer. Lo mismo con una orden terminada: el cron diario la cierra con `close_order` y el rent vuelve.
+- [ ] Una orden ya cerrada por el cron sigue mostrando su resultado en `/p/<orden>` y en Mis operaciones. Hoy el link muestra "Este link no existe o ya no está disponible": falta leer el resultado de `order_events` cuando la cuenta ya no existe.
 - [ ] Reembolso por falta de despacho y liberación automática por el cron (con plazos cortos en una config de prueba, o esperando los reales).
 - [ ] Disputa con reparto y verificación de los montos, la comisión y el depósito.
 - [ ] Carga desde Bitso por la red Solana y retiro a Phantom.
