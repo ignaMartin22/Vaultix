@@ -67,7 +67,7 @@ Plan sugerido: una **beta con tope bajo** (50–100 USDC por orden), con pocos v
 
 - [ ] El ciclo completo con montos chicos (1–2 USDC): crear, pagar, despachar, confirmar y cobrar.
 - [ ] Cancelar un link y verificar que el rent vuelve al fee payer. Lo mismo con una orden terminada: el cron diario la cierra con `close_order` y el rent vuelve.
-- [ ] Una orden ya cerrada por el cron sigue mostrando su resultado en `/p/<orden>` y en Mis operaciones. Hoy el link muestra "Este link no existe o ya no está disponible": falta leer el resultado de `order_events` cuando la cuenta ya no existe.
+- [ ] Una orden ya cerrada por el cron sigue mostrando su resultado en `/p/<orden>` y en Mis operaciones (se lee de `order_events` vía `/api/orders/:pda/outcome`; probado en devnet).
 - [ ] Reembolso por falta de despacho y liberación automática por el cron (con plazos cortos en una config de prueba, o esperando los reales).
 - [ ] Disputa con reparto y verificación de los montos, la comisión y el depósito.
 - [ ] Carga desde Bitso por la red Solana y retiro a Phantom.
