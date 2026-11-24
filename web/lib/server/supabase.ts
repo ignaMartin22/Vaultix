@@ -20,3 +20,17 @@ export function supabaseAdmin(): AdminClient {
   }
   return client;
 }
+
+/**
+ * Cheapest real query (a head count, no rows). The daily cron calls it so the
+ * free-tier project never goes a week without activity and gets paused.
+ * Never throws: the crank must run even if the database is down.
+ */
+export async function pingDatabase(db: Pick<AdminClient, "from"> = supabaseAdmin()): Promise<"ok" | string> {
+  try {
+    const { error } = await db.from("listings").select("id", { count: "exact", head: true });
+    return error ? error.message : "ok";
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+}
